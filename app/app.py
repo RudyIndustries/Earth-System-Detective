@@ -14,6 +14,7 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
+import icons as ic
 import map3d
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -31,7 +32,9 @@ STATE_COLORS = {
     "Causa climatica": [255, 145, 0],
     "Intacto": [0, 230, 118],
 }
-STATE_ICON = {"Huella humana": "🔴", "Alerta temprana": "🟣", "Sin explicar": "🟡", "Causa climatica": "🟠", "Intacto": "🟢"}
+# icono Lucide de cada estado
+STATE_LUCIDE = {"Huella humana": "footprints", "Alerta temprana": "siren", "Sin explicar": "circle-help",
+                "Causa climatica": "cloud-sun-rain", "Intacto": "shield-check"}
 SEVERITY = {"Huella humana": 0, "Alerta temprana": 1, "Sin explicar": 2, "Causa climatica": 3, "Intacto": 4}
 STATE_ACTION = {
     "Huella humana": "Prevenir: controlar la actividad sospechosa, proteger la cuenca, restaurar.",
@@ -40,24 +43,29 @@ STATE_ACTION = {
     "Sin explicar": "Revisar: el agua cae y el clima no alcanza a explicarlo, pero no hay pruebas para acusar.",
     "Intacto": "Seguimiento.",
 }
-VIEWS = ["🗺️ Mapa de alertas", "📋 Monitoreo", "🔎 Ficha del cuerpo de agua", "🔥 Vigilancia semanal"]
+VIEWS = ["Mapa de alertas", "Monitoreo", "Ficha del cuerpo de agua", "Vigilancia semanal"]
+VIEW_ICONS = ["map", "table", "scan-search", "flame"]
+TAB_ICONS = ["satellite", "chart-line", "droplets", "search", "map-pin", "scroll-text"]
 
 
 def hexc(rgb):
     return "#%02x%02x%02x" % tuple(rgb[:3])
 
 
-st.set_page_config(page_title="Uma", page_icon="💧", layout="wide")
+st.set_page_config(page_title="Uma", layout="wide")
 st.markdown("""
 <style>
 .block-container {padding-top: 3.2rem; padding-bottom: 1rem; max-width: 100%;}
-.pill {display:inline-block; padding:6px 16px; border-radius:999px; font-weight:800; font-size:1.05rem;
+.pill {display:inline-flex; align-items:center; gap:8px; padding:6px 16px; border-radius:999px; font-weight:800; font-size:1.05rem;
        color:#111; box-shadow:0 0 14px rgba(255,255,255,.15); margin:2px 6px 2px 0;}
 .pill-big {font-size:1.6rem; padding:10px 24px;}
 .kpi {border-radius:14px; padding:12px 16px; color:#111; font-weight:800; text-align:center;
       box-shadow:0 0 18px rgba(0,0,0,.35);}
 .kpi .n {font-size:2.1rem; line-height:1;}
-.kpi .t {font-size:.9rem; opacity:.85;}
+.kpi .t {font-size:.9rem; opacity:.85; display:flex; align-items:center; justify-content:center; gap:6px;}
+.h {display:flex; align-items:center; gap:10px; margin:.4rem 0 .6rem 0;}
+.h2 {font-size:1.75rem; font-weight:800;} .h3 {font-size:1.3rem; font-weight:800;}
+.test {display:flex; align-items:flex-start; gap:10px; margin:.35rem 0;}
 .legend {display:flex; flex-wrap:wrap; gap:14px; align-items:center; font-size:1rem; margin:6px 0 2px 0;}
 .legend i {display:inline-block; width:18px; height:18px; border-radius:50%; margin-right:6px; vertical-align:-3px;
            box-shadow:0 0 8px currentColor;}
@@ -68,7 +76,12 @@ st.markdown("""
 
 def pill(state, big=False):
     c = hexc(STATE_COLORS[state])
-    return f"<span class='pill{' pill-big' if big else ''}' style='background:{c}'>{STATE_ICON[state]} {state}</span>"
+    return (f"<span class='pill{' pill-big' if big else ''}' style='background:{c}'>"
+            f"{ic.svg(STATE_LUCIDE[state], '#111', 26 if big else 18, 2.6)}{state}</span>")
+
+
+def heading(icon, text, level=2, color="#e8eaed"):
+    return f"<div class='h h{level}'>{ic.svg(icon, color, 30 if level == 2 else 24, 2.4)}<span>{text}</span></div>"
 
 
 # ------------------------------------------------------------------ datos
@@ -136,8 +149,8 @@ st.session_state.setdefault("view", VIEWS[0])
 st.session_state.setdefault("sel", None)
 
 with st.sidebar:
-    st.markdown("<div class='title'>💧 Uma</div><div class='sub'>Detective de huella humana en el agua de Bolivia</div>",
-                unsafe_allow_html=True)
+    st.markdown(f"<div class='title h'>{ic.svg('droplets', '#00f5ff', 32, 2.4)}Uma</div>"
+                "<div class='sub'>Detective de huella humana en el agua de Bolivia</div>", unsafe_allow_html=True)
     view = st.radio("Vista", VIEWS, key="view", label_visibility="collapsed")
     st.divider()
     show_ctrl = st.toggle("Mostrar gemelas de control", value=False)
@@ -148,6 +161,20 @@ if st.session_state.sel not in options:
     st.session_state.sel = None
 if DATA.name == "sample":
     st.warning("Datos de prueba ficticios. No usar estos numeros en el pitch.")
+
+
+P = '[data-testid="stMarkdownContainer"] p'
+_rules = [(f'.st-key-view [role="radiogroup"] > :nth-child({i + 1}) {P}', n, "#e8eaed", 18)
+          for i, n in enumerate(VIEW_ICONS)]
+_rules += [(f'[data-testid="stTabs"] [role="tab"]:nth-of-type({i + 1}) {P}', n, "#8ab4ff", 17)
+           for i, n in enumerate(TAB_ICONS)]
+_rules += [(f".st-key-chk_fires {P}", "flame", "#ff3d00", 17), (f".st-key-chk_art {P}", "droplets", "#00f5ff", 17),
+           (f".st-key-chk_nat {P}", "scan", "#4f7cff", 17), (f".st-key-btn_open button {P}", "scan-search", "#ffffff", 18),
+           (f".st-key-btn_back button {P}", "arrow-left", "#e8eaed", 18),
+           (f".st-key-dl_monitor button {P}", "download", "#e8eaed", 18)]
+_rules += [(f".st-key-go_{r['body_id']} button {P}", STATE_LUCIDE[r["state"]], hexc(STATE_COLORS[r["state"]]), 20)
+           for r in results]
+st.markdown(ic.css_rules(_rules), unsafe_allow_html=True)
 
 
 def go_detail(body_id):
@@ -164,11 +191,11 @@ def view_map():
             + ["Satelite actual (Esri)"]
         mode = st.radio("Fondo sobre el relieve 3D", modes)
         year = st.slider("Ano", 1985, 2025, 2024, disabled=not mode.startswith(("Agua", "Landsat")))
-        fires = st.checkbox("🔥 Focos de calor NASA FIRMS (7 dias)", value=False, disabled=not live_ok)
-        show_art = st.checkbox("💠 Puntos de agua artificial (celeste neon)", value=artificial_pts is not None,
-                               disabled=artificial_pts is None)
-        show_nat = st.checkbox(f"🔵 Barrido nacional ({len(national)} lagunas)", value=bool(national),
-                               disabled=not national)
+        fires = st.checkbox("Focos de calor NASA FIRMS (7 dias)", value=False, disabled=not live_ok, key="chk_fires")
+        show_art = st.checkbox("Puntos de agua artificial (celeste neon)", value=artificial_pts is not None,
+                               disabled=artificial_pts is None, key="chk_art")
+        show_nat = st.checkbox(f"Barrido nacional ({len(national)} lagunas)", value=bool(national),
+                               disabled=not national, key="chk_nat")
         if not live_ok:
             st.caption("Capas de Earth Engine apagadas: falta autenticar Earth Engine.")
 
@@ -178,7 +205,7 @@ def view_map():
     cols = st.columns(len(STATE_COLORS))
     for c, (stt, rgb) in zip(cols, STATE_COLORS.items()):
         c.markdown(f"<div class='kpi' style='background:{hexc(rgb)}'><div class='n'>{int(cnt.get(stt, 0))}</div>"
-                   f"<div class='t'>{STATE_ICON[stt]} {stt}</div></div>", unsafe_allow_html=True)
+                   f"<div class='t'>{ic.svg(STATE_LUCIDE[stt], '#111', 18, 2.6)}{stt}</div></div>", unsafe_allow_html=True)
 
     texture = map3d.ESRI
     if mode.startswith("Agua"):
@@ -219,9 +246,11 @@ def view_map():
         st.session_state.sel = picked[0]["body_id"]
         st.rerun()
 
-    legend = "".join(f"<span><i style='background:{hexc(c)};color:{hexc(c)}'></i>{s}</span>" for s, c in STATE_COLORS.items())
-    legend += (f"<span><i style='background:#{map3d.NATURAL_HEX};color:#{map3d.NATURAL_HEX}'></i>Agua natural</span>"
-               f"<span><i style='background:#{map3d.ARTIFICIAL_HEX};color:#{map3d.ARTIFICIAL_HEX}'></i>Agua artificial</span>")
+    legend = "".join(f"<span class='h' style='margin:0;gap:6px'>{ic.svg(STATE_LUCIDE[s], hexc(c), 20, 2.6)}{s}</span>"
+                     for s, c in STATE_COLORS.items())
+    legend += (f"<span class='h' style='margin:0;gap:6px'>{ic.svg('waves', '#4f7cff', 20, 2.6)}Agua natural</span>"
+               f"<span class='h' style='margin:0;gap:6px'>{ic.svg('droplets', '#' + map3d.ARTIFICIAL_HEX, 20, 2.6)}"
+               "Agua artificial</span>")
     st.markdown(f"<div class='legend'>{legend}</div>", unsafe_allow_html=True)
     st.caption("Columnas: cuerpos de agua con analisis completo (altura = % de agua perdida). Puntos con borde blanco: "
                "barrido nacional. Clic en una columna para volar hasta ahi · Ctrl + arrastrar para girar · rueda para zoom.")
@@ -240,19 +269,19 @@ def view_map():
                         f"<div style='font-size:1.15rem;font-weight:800'>{top}</div>", unsafe_allow_html=True)
             st.info(STATE_ACTION[r["state"]])
             b1, b2 = st.columns(2)
-            if b1.button("🔎 Abrir ficha completa", type="primary", use_container_width=True):
+            if b1.button("Abrir ficha completa", type="primary", use_container_width=True, key="btn_open"):
                 go_detail(r["body_id"])
                 st.rerun()
-            if b2.button("🗺️ Volver a Bolivia completa", use_container_width=True):
+            if b2.button("Volver a Bolivia completa", use_container_width=True, key="btn_back"):
                 st.session_state.sel = None
                 st.rerun()
         else:
             st.markdown("### Haz clic en una columna del mapa")
             st.caption("O elige un cuerpo de agua en la lista de la derecha.")
     with right:
-        st.markdown("### 🚨 Donde actuar primero")
+        st.markdown(heading("siren", "Donde actuar primero", 3, "#ff1744"), unsafe_allow_html=True)
         for r in sorted(visible, key=lambda r: (SEVERITY[r["state"]], r["trend"]["change_pct"])):
-            if st.button(f"{STATE_ICON[r['state']]} {r['name']} · {r['trend']['change_pct']:+.0f}% · {r['state']}",
+            if st.button(f"{r['name']} · {r['trend']['change_pct']:+.0f}% · {r['state']}",
                          key=f"go_{r['body_id']}", use_container_width=True):
                 st.session_state.sel = r["body_id"]
                 st.rerun()
@@ -260,7 +289,7 @@ def view_map():
 
 # ================================================================== VISTA: MONITOREO
 def view_monitor():
-    st.markdown("## 📋 Monitoreo de cuerpos de agua")
+    st.markdown(heading("table", "Monitoreo de cuerpos de agua"), unsafe_allow_html=True)
     rows = []
     for r in results:
         f = fires_for(r["body_id"])
@@ -272,7 +301,7 @@ def view_monitor():
             "Clima explica %": share_pct(r),
             "Sospechoso principal": r["suspects"][0]["label"] if r["suspects"] else "",
             "Evidencia": r["suspects"][0]["evidence"] if r["suspects"] else "",
-            "Incendios 7 dias": "" if not f else (("🔥 ALERTA " if f["alerta"] else "") +
+            "Incendios 7 dias": "" if not f else (("ALERTA · " if f["alerta"] else "") +
                                                   " · ".join(f"{k}: {a['focos']}" for k, a in f["areas"].items())),
             "Calidad datos": (r.get("data_quality") or {}).get("level", ""),
             "Superficie ha": round(r.get("baseline_mean_ha", 0)), "lat": r["lat"], "lon": r["lon"]})
@@ -302,10 +331,9 @@ def view_monitor():
     st.markdown(" ".join(pill(s) + f"<b>{int(cnt.get(s, 0))}</b>&nbsp;&nbsp;" for s in STATE_COLORS), unsafe_allow_html=True)
 
     show = f.drop(columns=["id"]).copy()
-    show["Estado"] = show.Estado.map(lambda s: f"{STATE_ICON[s]} {s}")
 
     def paint(col):
-        return [f"background-color:{hexc(STATE_COLORS[v.split(' ', 1)[1]])};color:#111;font-weight:700" for v in col]
+        return [f"background-color:{hexc(STATE_COLORS[v])};color:#111;font-weight:700" for v in col]
     styled = show.style.apply(paint, subset=["Estado"]).format({"Clima explica %": lambda v: "" if pd.isna(v) else f"{v:.0f}"})
     ev = st.dataframe(styled, hide_index=True, use_container_width=True, height=560, on_select="rerun",
                       selection_mode="single-row", key="monitor_table")
@@ -319,13 +347,13 @@ def view_monitor():
             st.rerun()
         else:
             st.info("Este cuerpo de agua es del barrido nacional: todavia no tiene analisis completo.")
-    st.download_button("⬇️ Descargar la tabla (CSV)", f.drop(columns=["id"]).to_csv(index=False).encode("utf-8"),
-                       "uma_monitoreo.csv", "text/csv")
+    st.download_button("Descargar la tabla (CSV)", f.drop(columns=["id"]).to_csv(index=False).encode("utf-8"),
+                       "uma_monitoreo.csv", "text/csv", key="dl_monitor")
 
 
 # ================================================================== VISTA: VIGILANCIA
 def view_watch():
-    st.markdown("## 🔥 Vigilancia semanal de incendios (NASA FIRMS)")
+    st.markdown(heading("flame", "Vigilancia semanal de incendios (NASA FIRMS)", 2, "#ff3d00"), unsafe_allow_html=True)
     if not weekly:
         st.info("Todavia no se corrio la vigilancia: python -m uma.alerts --project TU-PROYECTO --dry-run")
         return
@@ -333,16 +361,16 @@ def view_watch():
     st.markdown(f"Semana al **{weekly['week_end']}** · revisado {weekly['checked_at'][:16].replace('T', ' ')} · "
                 f"avisos: {weekly['notified']}")
     if hot:
-        st.error(f"🔥 {len(hot)} cuerpos de agua con alerta de incendio esta semana")
+        st.error(f"{len(hot)} cuerpos de agua con alerta de incendio esta semana")
     else:
         st.success("Sin alertas de incendio esta semana: los focos estan dentro de lo normal.")
     rows = []
     for x in weekly["rows"]:
         for nm, a in x["areas"].items():
-            rows.append({"Cuerpo de agua": x["name"], "Estado": f"{STATE_ICON.get(x['state'], '')} {x['state']}",
+            rows.append({"Cuerpo de agua": x["name"], "Estado": x["state"],
                          "Area": "Cerca de la laguna" if nm == "cerca" else "Toda la cuenca",
                          "Focos esta semana": a["focos"], "Normal para esta semana": a["normal"],
-                         "Alerta": "🔥 SI" if a["alerta"] else "no"})
+                         "Alerta": "SI" if a["alerta"] else "no"})
     st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
     st.caption("Alerta si un cuerpo de agua en riesgo tiene al menos 5 focos y el doble de lo normal (promedio de la "
                "misma semana en los 5 anos anteriores). Prueba retroactiva: la semana al 2019-08-25 dispara la alerta "
@@ -366,7 +394,7 @@ def view_detail():
         st.session_state.sel = st.session_state.pick
     if st.session_state.sel:
         st.session_state.pick = st.session_state.sel
-    sel = st.selectbox("Cuerpo de agua", options, format_func=lambda i: f"{STATE_ICON[by_id[i]['state']]} {by_id[i]['name']}",
+    sel = st.selectbox("Cuerpo de agua", options, format_func=lambda i: f"{by_id[i]['name']} · {by_id[i]['state']}",
                        key="pick", on_change=_pick)
     r = by_id[sel]
     st.markdown(f"## {r['name']}")
@@ -392,8 +420,8 @@ def view_detail():
         st.caption(f"El clima (lluvia, temperatura y El Nino) explica el {100 * min(r['climate_share'], 9.99):.0f}% de la "
                    f"perdida entre {r['years'][0]}-{r['baseline_end']} y los ultimos 5 anos.")
 
-    tabs = st.tabs(["🛰️ Antes y despues", "📈 Clima y causas", "💠 Agua natural vs artificial",
-                    "🔍 Pruebas y sospechosos", "📍 Alrededores", "🧾 Auditoria"])
+    tabs = st.tabs(["Antes y despues", "Clima y causas", "Agua natural vs artificial",
+                    "Pruebas y sospechosos", "Alrededores", "Auditoria"])
     with tabs[0]:
         meta = load_meta(sel)
         views = ["La laguna"] + (["Los alrededores: que aparecio"] if meta else [])
@@ -486,7 +514,7 @@ def view_detail():
                 y=alt.Y("ha:Q", title="Agua artificial (ha)", axis=alt.Axis(titleColor="#" + map3d.ARTIFICIAL_HEX)))
             st.altair_chart(alt.layer(left, right).resolve_scale(y="independent"), use_container_width=True)
             a0, a1 = art[art.year.between(1985, 1990)].ha.mean(), art[art.year.between(2020, 2024)].ha.mean()
-            st.markdown(f"<span class='pill' style='background:#{map3d.ARTIFICIAL_HEX}'>💠 Agua artificial: "
+            st.markdown(f"<span class='pill' style='background:#{map3d.ARTIFICIAL_HEX}'>{ic.svg('droplets', '#111', 18, 2.6)}Agua artificial: "
                         f"{a0:,.0f} → {a1:,.0f} ha</span> (1985-1990 contra 2020-2024)", unsafe_allow_html=True)
             st.caption("Azul oscuro: agua natural. Celeste neon (eje derecho): represas, estanques y pozas mineras "
                        "(MapBiomas Agua Bolivia, coleccion 4). Si la artificial sube mientras la natural baja, la "
@@ -496,7 +524,9 @@ def view_detail():
         names = {"clima": "1. Lo que el clima no explica", "control": "2. Gemela de control",
                  "coincidencia": "3. Coincidencia en el tiempo"}
         for k, t in r["tests"].items():
-            st.markdown(f"{'✅' if t['pass'] else '⬜'} **{names[k]}** — {t['detail']}")
+            mark = ic.svg("circle-check", "#00e676", 22, 2.6) if t["pass"] else ic.svg("circle-dashed", "#9e9e9e", 22, 2.2)
+            st.markdown(f"<div class='test'>{mark}<div><b>{names[k]}</b> — {t['detail']}</div></div>",
+                        unsafe_allow_html=True)
         if r["suspects"]:
             sus = pd.DataFrame(r["suspects"])
             sus["Inseparable de"] = sus["together_with"].apply(lambda l: ", ".join(l))

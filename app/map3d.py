@@ -90,6 +90,10 @@ def live_texture(year: int, mode: str = "landsat", fires: bool = False, day: str
     artificial = cls.gte(21).And(cls.lte(24)).selfMask()  # de lejos se ve con la capa de puntos neon
     img = img.blend(natural.visualize(palette=[NATURAL_HEX], opacity=0.95))
     img = img.blend(artificial.visualize(palette=[ARTIFICIAL_HEX]))
+    # solo Bolivia (con 15 km de margen): el resto queda transparente y Bolivia resalta sobre el fondo oscuro
+    country = (ee.FeatureCollection("FAO/GAUL/2015/level0").filter(ee.Filter.eq("ADM0_NAME", "Bolivia"))
+               .geometry().simplify(2000).buffer(15000))
+    img = img.clip(country)
     if fires:
         now = ee.Date(day or ee.Date(0))
         firms = ee.ImageCollection("FIRMS").filterDate(now.advance(-7, "day"), now.advance(1, "day")).select("T21").max()
