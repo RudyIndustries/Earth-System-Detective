@@ -95,9 +95,11 @@ def per_year(name: str, image_for_year, fc, scale) -> pd.DataFrame:
         if y in set(done.year):
             continue
         img = image_for_year(y).rename("value")
-        res = retry(lambda: img.reduceRegions(fc, ee.Reducer.sum(), scale, tileScale=8).getInfo())
+        res = retry(lambda: img.reduceRegions(fc, ee.Reducer.sum().setOutputs(["value"]), scale, tileScale=8).getInfo())
         rows = [{"lake_id": x["properties"]["lake_id"], "year": y, "value": x["properties"].get("value") or 0.0}
                 for x in res["features"]]
+        if y == YEARS[0] and not any(r["value"] for r in rows):  # control: si todo da cero, algo esta mal
+            raise RuntimeError(f"{name} {y}: todos los valores son cero; revisar el nombre de la salida")
         done = pd.concat([done, pd.DataFrame(rows)], ignore_index=True)
         done.to_csv(f, index=False)
         print(f"   {name} {y}", flush=True)
@@ -125,6 +127,8 @@ def climate(lakes: pd.DataFrame) -> pd.DataFrame:
 def diagnose(lakes, water, press, clim):
     print("5) motor de atribucion", flush=True)
     oni = pd.read_csv(ROOT / "data" / "real" / "oni.csv")
+    water = water.assign(value=pd.to_numeric(water["value"], errors="coerce"), year=water["year"].astype(int))
+    press = press.assign(value=pd.to_numeric(press["value"], errors="coerce"), year=press["year"].astype(int))
     s = water.rename(columns={"lake_id": "body_id", "value": "water_ha"})
     s = s.merge(clim.rename(columns={"lake_id": "body_id"}), on=["body_id", "year"]).merge(oni, on="year")
     s = s[s.year <= 2024].sort_values(["body_id", "year"])
@@ -139,9 +143,10 @@ def diagnose(lakes, water, press, clim):
     lakes["region"] = (np.floor(lakes.lat / 3).astype(int).astype(str) + "_" + np.floor(lakes.lon / 3).astype(int).astype(str))
     low = lakes[lakes.lake_id.map(p1).fillna(0) <= lakes.lake_id.map(p1).fillna(0).quantile(0.33)]
     base = s[s.year <= 2000].groupby("body_id").water_ha.mean()
+    base = base[base > 0]  # lagunas sin agua en el periodo base no sirven para normalizar
     ctrl_rows, ctrl_of = [], {}
     for reg, g in lakes.groupby("region"):
-        members = low[low.region == reg].lake_id.tolist()
+        members = [m for m in low[low.region == reg].lake_id if m in base.index]
         if len(members) < 3:
             continue
         sub = s[s.body_id.isin(members)].copy()

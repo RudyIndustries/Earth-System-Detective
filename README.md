@@ -188,3 +188,14 @@ los 5 años anteriores). Para avisos, copiar `.env.example` como `.env` y comple
 corra solo cada lunes: `.github/workflows/alertas.yml` (requiere una cuenta de servicio de Earth Engine guardada
 como secreto `GEE_SERVICE_ACCOUNT_KEY` en GitHub). Prueba retroactiva: con la semana al 2019-08-25 avisa en la
 laguna de la Chiquitanía este (163 focos cerca contra 1.2 normales).
+
+## Verificación cruzada (`uma/verify.py`)
+
+Compara los datos del sistema con fuentes que el motor no usa: agua de Landsat contra MapBiomas Agua (r de 0.86 a
+0.98 en las lagunas bolivianas) y lluvia de NASA POWER contra CHIRPS (r de 0.53 a 0.77). Coinciden con hechos
+publicados: la Laguna Concepción seca en 2003-2005 y 2021-2022, el mínimo del Titicaca en 2023-2024 y Pozuelos
+casi seca en 1994-1996. Como las dos fuentes de lluvia discrepan, `uma/climate_blend.py` usa su promedio
+(`precip_mm`) y guarda ambas (`precip_power_mm`, `precip_chirps_mm`).
+
+Reglas de evidencia de los sospechosos: un sospechoso medido en hectáreas tiene que crecer al menos el 10% del agua
+perdida (si no, queda como débil), y "antecede la caída" si ya había crecido 1.5 veces alrededor del quiebre del agua.

@@ -287,24 +287,50 @@ def tag_areas(sus: pd.DataFrame) -> pd.DataFrame:
 CONTEXT_ONLY = {"natural_water_ha"}  # series de contexto que no son sospechosos
 
 
+FLOWS = {"forest_loss_ha", "burned_ha"}  # hectareas por ano: se acumulan
+MIN_SHARE_OF_LOSS = 0.10   # un sospechoso de area debe crecer al menos el 10% del agua perdida
+PRE_GROWTH = 1.5           # y, para anteceder, haber crecido 1.5 veces antes del quiebre del agua
+
+
 def audit_suspects(df, resid, sus: pd.DataFrame, resid_break: int | None, baseline_end: int) -> list[dict]:
+    """Ordena los sospechosos por evidencia.
+
+    Tres criterios (cada uno suma): crece de forma significativa; antecede la caida (ya habia crecido
+    PRE_GROWTH veces antes del quiebre del agua); y se relaciona en el sentido esperado (mas presion,
+    menos agua de la que explica el clima). Ademas, un sospechoso medido en hectareas que crecio menos
+    del 10% del agua perdida es demasiado chico para explicarla: su evidencia queda en debil.
+    """
+    base_mean = float(df.loc[:baseline_end, "water_ha"].mean())
+    water_lost = max(0.0, base_mean - float(df["water_ha"].iloc[-5:].mean()))
     out = []
     for name, g in sus.groupby("suspect"):
-        if base_name(name) in CONTEXT_ONLY:
+        bn = base_name(name)
+        if bn in CONTEXT_ONLY:
             continue
         s = g.set_index("year")["value"].reindex(df.index).fillna(0.0)
         if s.std() == 0:
             continue
-        rising_mk = mann_kendall(s)
-        rising = rising_mk["p"] < ALPHA and sen_slope(s.index.values, s) > 0
-        pressure = _excess(s, baseline_end, base_name(name) in ("forest_loss_ha", "burned_ha"))
+        rising = mann_kendall(s)["p"] < ALPHA and sen_slope(s.index.values, s) > 0
+        level = s.cumsum() if bn in FLOWS else s  # area acumulada para desmonte y fuego
+        pressure = _excess(s, baseline_end, bn in FLOWS)
         idx, _ = pettitt(s.values)
         onset = int(df.index[idx])
         rho, p = stats.spearmanr(pressure, resid)
         r2 = float(rho**2)
-        precedes = rising and resid_break is not None and 0 <= resid_break - onset <= MAX_LAG_YEARS
-        # se espera relacion negativa: mas presion, menos agua de la esperada
-        hits = sum([precedes, rising, bool(p < ALPHA and rho < 0 and r2 > 0.3)])
+        early = float(level.iloc[:5].mean())
+        growth = float(level.iloc[-5:].mean() - early)
+        is_area = bn.endswith("_ha")
+        big_enough = (not is_area) or water_lost == 0 or growth >= MIN_SHARE_OF_LOSS * water_lost
+        precedes = False
+        if rising and resid_break is not None:
+            # nivel alrededor del quiebre (el ano anterior al siguiente): como en la regla original, el
+            # sospechoso puede arrancar el mismo ano en que se quiebra el agua
+            pre = float(level.loc[resid_break - 1:resid_break + 1].mean())
+            min_abs = MIN_SHARE_OF_LOSS * water_lost if is_area else 0.0
+            precedes = pre >= PRE_GROWTH * max(early, 1e-9) and (pre - early) >= min_abs
+        relation = bool(p < ALPHA and rho < 0 and r2 > 0.3)
+        hits = sum([precedes, rising, relation])
+        evidence = {3: "fuerte", 2: "media"}.get(hits, "debil") if big_enough else "debil"
         out.append({
             "suspect": name,
             "label": suspect_label(name),
@@ -314,8 +340,11 @@ def audit_suspects(df, resid, sus: pd.DataFrame, resid_break: int | None, baseli
             "r2": r2,
             "precedes": bool(precedes),
             "rising": bool(rising),
-            "evidence": {3: "fuerte", 2: "media"}.get(hits, "debil"),
-            "score": hits + r2,
+            "growth": round(growth, 1),
+            "share_of_loss": round(growth / water_lost, 2) if is_area and water_lost else None,
+            "big_enough": bool(big_enough),
+            "evidence": evidence,
+            "score": (hits if big_enough else 0) + r2,
         })
     out.sort(key=lambda d: d["score"], reverse=True)
     # sospechosos que crecen juntos: se reportan como inseparables
