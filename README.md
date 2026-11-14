@@ -61,9 +61,9 @@ para descargar nuevas series, recalcular los diagnósticos, generar el barrido y
 | `uma/audit.py` | P2 Modelo | Auditoría en SQLite (`data/real/uma.db`): corridas, veredictos, alertas, revisiones |
 | `uma/synthetic.py` | P2/P3 | Datos de prueba ficticios con el mismo formato |
 | `run_engine.py` | P2 | CSV → `results.json` + registro de auditoría |
-| `frontend/` | P3 Interfaz | Next.js: mapa 3D, alertas, ficha, antes/después, alrededores, historial |
+| `frontend/` | P3 Interfaz | Next.js: panorama, mapa 3D, alertas, ficha, antes/después, alrededores, historial |
 | `backend/` | API | NestJS: acceso a datos locales, imágenes, auditoría SQLite y capas de Earth Engine |
-| `app/app.py`, `app/map3d.py` | P3 Interfaz original | Dashboard Streamlit |
+| `app/` | P3 Interfaz original | Dashboard Streamlit con tema, vistas agregadas y mapa 3D |
 | `gee/extraer_series.py` | P1 Datos | Cómo correr lo mismo desde Google Colab |
 
 ## Arranque de la interfaz original
@@ -187,9 +187,18 @@ r < 0.7), la confianza baja un nivel y la app lo advierte.
 Descomposición: cambio entre el promedio del periodo base y el de los últimos 5 años (el mismo % de la tarjeta),
 repartido en sequía y calor, El Niño, huella humana (solo con 2 o más pruebas) y sin explicar. Las partes suman el total.
 
-Estados: **Huella humana** (2 o más pruebas), **Causa climática** (cae al menos 10% y el clima explica al menos el
-60% de la pérdida), **Alerta temprana** (presión sube, agua aún estable), **Sin explicar** (cae y el clima no
-alcanza a explicarlo, sin pruebas suficientes para acusar), **Intacto**.
+Estados: **Huella humana** (un sospechoso directo pasa la prueba de coincidencia y al menos otra prueba pasa),
+**Causa climática** (cae al menos 10%, el modelo de clima es confiable y explica al menos el 60%), **Alerta temprana**
+(presión de uso del suelo creciendo y agua aún estable), **Incalculable** (el agua cae pero con los datos disponibles
+no se puede calcular la causa con confianza; cada laguna lista sus motivos) e **Intacto**.
+
+Modelo de clima: agua ~ balance de dos años (anomalía de lluvia menos anomalía de evaporación potencial de ERA5-Land)
++ El Niño, entrenado en 1985-2000. Es confiable si es significativo (p < 0.05) y si más balance da más agua; si no,
+la prueba del clima queda "no evaluable" y las otras usan el agua observada (la gemela controla el clima).
+La gemela solo vale si su propia agua cambió menos de 25%. Población, luces nocturnas y ciudad de toda la cuenca son
+indicadores indirectos: se muestran, pero no pueden ser el culpable. Pérdidas de 10-15% dan confianza baja.
+Sospechosos nuevos: agua consumida por cultivos en época seca (MODIS MOD16, NASA) y déficit de agua en el cauce del
+Desaguadero respecto de lo esperado por el nivel del Titicaca y la lluvia (`uma/hydro_extra.py`).
 
 Áreas: el agua se mide en el círculo de la laguna; el clima, en la cuenca de aporte completa; los sospechosos, en dos
 escalas que se auditan por separado: "cerca" (subcuenca local) y "cuenca" (cuenca de aporte completa)
@@ -229,3 +238,14 @@ los 5 años anteriores). Para avisos, copiar `.env.example` como `.env` y comple
 corra solo cada lunes: `.github/workflows/alertas.yml` (requiere una cuenta de servicio de Earth Engine guardada
 como secreto `GEE_SERVICE_ACCOUNT_KEY` en GitHub). Prueba retroactiva: con la semana al 2019-08-25 avisa en la
 laguna de la Chiquitanía este (163 focos cerca contra 1.2 normales).
+
+## Verificación cruzada (`uma/verify.py`)
+
+Compara los datos del sistema con fuentes que el motor no usa: agua de Landsat contra MapBiomas Agua (r de 0.86 a
+0.98 en las lagunas bolivianas) y lluvia de NASA POWER contra CHIRPS (r de 0.53 a 0.77). Coinciden con hechos
+publicados: la Laguna Concepción seca en 2003-2005 y 2021-2022, el mínimo del Titicaca en 2023-2024 y Pozuelos
+casi seca en 1994-1996. Como las dos fuentes de lluvia discrepan, `uma/climate_blend.py` usa su promedio
+(`precip_mm`) y guarda ambas (`precip_power_mm`, `precip_chirps_mm`).
+
+Reglas de evidencia de los sospechosos: un sospechoso medido en hectáreas tiene que crecer al menos el 10% del agua
+perdida (si no, queda como débil), y "antecede la caída" si ya había crecido 1.5 veces alrededor del quiebre del agua.

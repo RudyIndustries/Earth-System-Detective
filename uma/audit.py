@@ -106,7 +106,7 @@ def record_run(data_dir: Path, results: list[dict], baseline_end: int, note: str
             json.dumps(r["decomposition_ha"], ensure_ascii=False)))
         for k, t in r["tests"].items():
             con.execute("INSERT INTO evidence VALUES (?,?,?,?,?,?)",
-                        (run_id, r["body_id"], k, int(t["pass"]), t.get("p"), t["detail"]))
+                        (run_id, r["body_id"], k, None if t["pass"] is None else int(t["pass"]), t.get("p"), t["detail"]))
         for i, s in enumerate(r["suspects"]):
             con.execute("INSERT INTO suspects VALUES (?,?,?,?,?,?,?,?,?,?)",
                         (run_id, r["body_id"], s["suspect"], s["label"], s["evidence"], s["onset"],
