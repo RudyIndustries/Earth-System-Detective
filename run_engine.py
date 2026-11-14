@@ -6,6 +6,8 @@ Uso:
 """
 import json
 import sys
+import math
+import shutil
 from pathlib import Path
 
 import pandas as pd
@@ -27,10 +29,22 @@ suspects = pd.read_csv(src / "suspects.csv") if (src / "suspects.csv").exists() 
     pd.DataFrame(columns=["body_id", "year", "suspect", "value"])
 
 results = engine.run(bodies, series, suspects, baseline_end)
-(src / "results.json").write_text(json.dumps(results, indent=1, ensure_ascii=False), encoding="utf-8")
+def safe_json(value):
+    if isinstance(value, dict): return {k: safe_json(v) for k, v in value.items()}
+    if isinstance(value, list): return [safe_json(v) for v in value]
+    if isinstance(value, float) and not math.isfinite(value): return None
+    return value
+results = safe_json(results)
+previous = src / "history" / "results_pre_validation_v2.json"
+if (src / "results.json").exists() and not previous.exists():
+    previous.parent.mkdir(exist_ok=True)
+    shutil.copy2(src / "results.json", previous)
+(src / "results.json").write_text(json.dumps(results, indent=1, ensure_ascii=False, allow_nan=False), encoding="utf-8")
 
 from uma import audit
 run_id = audit.record_run(src, results, baseline_end, note)
+from uma import report
+report.write(src, bodies, series, suspects, results, baseline_end)
 
 for r in results:
     t = r["tests"]

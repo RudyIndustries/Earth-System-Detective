@@ -179,7 +179,7 @@
    "change_pct": -38.908262720674536,
    "p_holm": 3.2127619551403086e-06
   },
-  "climate_r2": 0.6869910635906884,
+  "climate_r2": 0.6869910635906886,
   "tests": {
    "clima": {
     "pass": true,
@@ -224,7 +224,7 @@
     "label": "Incendios",
     "onset": 1995,
     "rho": 0.5915572232645404,
-    "p": 5.8209217383765514e-05,
+    "p": 5.82092173837655e-05,
     "r2": 0.3499399483964533,
     "precedes": false,
     "rising": false,
@@ -261,9 +261,9 @@
   ],
   "state": "Huella humana",
   "backtest": {
-   "mae_ha": 360.46554906214595,
-   "bias_ha": -342.13195939019516,
-   "mae_pct": 20.50969319642659
+   "mae_ha": 360.4655490621372,
+   "bias_ha": -342.13195939018215,
+   "mae_pct": 20.509693196426092
   },
   "name": "Caso A - laguna con desmonte (ficticio)",
   "lat": -16.1,
@@ -452,7 +452,7 @@
    "change_pct": -5.573136729392976,
    "p_holm": 1.0
   },
-  "climate_r2": 0.6407777194697902,
+  "climate_r2": 0.640777719469791,
   "tests": {
    "clima": {
     "pass": false,
@@ -497,7 +497,7 @@
     "label": "Incendios",
     "onset": 1996,
     "rho": 0.25253283302063795,
-    "p": 0.1159240857463372,
+    "p": 0.11592408574633721,
     "r2": 0.0637728317534294,
     "precedes": false,
     "rising": false,
@@ -510,7 +510,7 @@
     "label": "Mineria",
     "onset": 2001,
     "rho": 0.23996247654784245,
-    "p": 0.13585136442052737,
+    "p": 0.1358513644205274,
     "r2": 0.05758199015097384,
     "precedes": false,
     "rising": false,
@@ -534,9 +534,9 @@
   ],
   "state": "Sin explicar",
   "backtest": {
-   "mae_ha": 70.49935141650793,
-   "bias_ha": -29.011710058130006,
-   "mae_pct": 3.5673792508944686
+   "mae_ha": 70.49935141650576,
+   "bias_ha": -29.011710058121196,
+   "mae_pct": 3.5673792508943585
   },
   "name": "Gemela de control de A",
   "lat": -15.8,
@@ -725,7 +725,7 @@
    "change_pct": -9.396610087892183,
    "p_holm": 2.9269414715704656e-05
   },
-  "climate_r2": 0.6514731854210221,
+  "climate_r2": 0.651473185421023,
   "tests": {
    "clima": {
     "pass": false,
@@ -807,9 +807,9 @@
   ],
   "state": "Causa climatica",
   "backtest": {
-   "mae_ha": 65.16819974879034,
-   "bias_ha": -62.859989836844306,
-   "mae_pct": 3.2760391732405174
+   "mae_ha": 65.16819974877866,
+   "bias_ha": -62.85998983683135,
+   "mae_pct": 3.2760391732399303
   },
   "name": "Caso B - laguna con causa climatica (ficticio)",
   "lat": -18.9,
@@ -998,7 +998,7 @@
    "change_pct": -8.64913179032077,
    "p_holm": 0.0011042001864365325
   },
-  "climate_r2": 0.9591796585792097,
+  "climate_r2": 0.9591796585792098,
   "tests": {
    "clima": {
     "pass": false,
@@ -1080,12 +1080,12 @@
   ],
   "state": "Causa climatica",
   "backtest": {
-   "mae_ha": 68.980676597092,
-   "bias_ha": 10.112730182215955,
-   "mae_pct": 3.4451408207271785
+   "mae_ha": 68.98067659709223,
+   "bias_ha": 10.112730182221563,
+   "mae_pct": 3.44514082072719
   },
   "name": "Gemela de control de B",
-  "lat": -18.599999999999998,
+  "lat": -18.6,
   "lon": -66.7,
   "kind": "natural",
   "department": "Ficticio",
@@ -1271,7 +1271,7 @@
    "change_pct": 4.184154285861421,
    "p_holm": 1.0
   },
-  "climate_r2": 0.7778566861693177,
+  "climate_r2": 0.7778566861693176,
   "tests": {
    "clima": {
     "pass": false,
@@ -1316,7 +1316,7 @@
     "label": "Mineria",
     "onset": 2001,
     "rho": 0.36641651031894934,
-    "p": 0.02004706935462643,
+    "p": 0.02004706935462642,
     "r2": 0.1342610590343167,
     "precedes": false,
     "rising": false,
@@ -1353,9 +1353,9 @@
   ],
   "state": "Alerta temprana",
   "backtest": {
-   "mae_ha": 56.47511112969045,
-   "bias_ha": 18.35035287354837,
-   "mae_pct": 2.8628404862226775
+   "mae_ha": 56.47511112969016,
+   "bias_ha": 18.35035287354695,
+   "mae_pct": 2.8628404862226624
   },
   "name": "Caso C - laguna en alerta temprana (ficticio)",
   "lat": -14.8,
@@ -1544,7 +1544,7 @@
    "change_pct": -0.7252780740514995,
    "p_holm": 1.0
   },
-  "climate_r2": 0.8357833745922402,
+  "climate_r2": 0.8357833745922401,
   "tests": {
    "clima": {
     "pass": false,
@@ -1626,9 +1626,9 @@
   ],
   "state": "Intacto",
   "backtest": {
-   "mae_ha": 63.833834634521544,
-   "bias_ha": 42.41974249676031,
-   "mae_pct": 3.224309654266046
+   "mae_ha": 63.833834634518446,
+   "bias_ha": 42.419742496752434,
+   "mae_pct": 3.22430965426589
   },
   "name": "Gemela de control de C",
   "lat": -14.5,
@@ -1817,7 +1817,7 @@
    "change_pct": -14.26760244509849,
    "p_holm": 0.0011042001864365325
   },
-  "climate_r2": 0.9208868533566242,
+  "climate_r2": 0.9208868533566241,
   "tests": {
    "clima": {
     "pass": true,
@@ -1899,9 +1899,9 @@
   ],
   "state": "Huella humana",
   "backtest": {
-   "mae_ha": 127.74365293325464,
-   "bias_ha": -118.7442971692421,
-   "mae_pct": 6.709119758262981
+   "mae_ha": 127.74365293325532,
+   "bias_ha": -118.74429716924328,
+   "mae_pct": 6.709119758263017
   },
   "name": "Caso D - laguna con mineria (ficticio)",
   "lat": -15.4,
@@ -2090,7 +2090,7 @@
    "change_pct": 1.2371408132387112,
    "p_holm": 1.0
   },
-  "climate_r2": 0.8187782977597922,
+  "climate_r2": 0.8187782977597918,
   "tests": {
    "clima": {
     "pass": false,
@@ -2172,9 +2172,9 @@
   ],
   "state": "Intacto",
   "backtest": {
-   "mae_ha": 43.922405447301,
-   "bias_ha": -21.440907927468686,
-   "mae_pct": 2.2122809849601848
+   "mae_ha": 43.92240544729888,
+   "bias_ha": -21.440907927465332,
+   "mae_pct": 2.2122809849600773
   },
   "name": "Gemela de control de D",
   "lat": -15.1,

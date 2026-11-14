@@ -38,6 +38,20 @@ STATE_ACTION = {
     "Intacto": "Seguimiento.",
 }
 
+# Estados conservadores; se mantienen los antiguos solo para leer corridas históricas.
+STATE_COLORS.update({
+    "Evidencia insuficiente": [130, 135, 145], "Sin perdida anomala detectada": [40, 150, 200],
+    "Perdida no explicada": [230, 160, 40], "Indicios de intervencion humana": [180, 85, 40],
+    "Evidencia reforzada de intervencion": [180, 55, 65],
+})
+STATE_ACTION.update({
+    "Evidencia insuficiente": "Revisar calidad, período base y validación antes de interpretar causas.",
+    "Sin perdida anomala detectada": "Seguimiento: no equivale a ausencia de impactos o a un ecosistema intacto.",
+    "Perdida no explicada": "Investigar datos, hidrología y actividades: el residuo aún no tiene causa atribuida.",
+    "Indicios de intervencion humana": "Revisar las señales y buscar evidencia independiente de la actividad.",
+    "Evidencia reforzada de intervencion": "Revisar el caso documentado y sus supuestos; no equivale a certeza causal.",
+})
+
 st.set_page_config(page_title="Uma", layout="wide")
 
 results_path = DATA / "results.json"
@@ -49,7 +63,7 @@ by_id = {r["body_id"]: r for r in results}
 controls = {r["control_id"] for r in results if r.get("control_id")}
 
 st.title("Uma")
-st.caption("Detective de huella humana en el agua de Bolivia. Separa el clima (sequia, El Nino) de la accion humana.")
+st.caption("Seguimiento del agua: detecta anomalías y evalúa indicios de presión humana con incertidumbre.")
 if DATA.name == "sample":
     st.warning("Datos de prueba ficticios. No usar estos numeros en el pitch.")
 
@@ -77,7 +91,7 @@ SUSPECT_CHANGE = {"mining_ha": "mining", "urban_ha": "urban", "population": "urb
 
 # ------------------------------------------------------------------ mapa 3D + alertas
 show_ctrl = st.sidebar.toggle("Mostrar gemelas de control", value=False)
-visible = [r for r in results if show_ctrl or r["body_id"] not in controls or r["state"] == "Huella humana"]
+visible = [r for r in results if show_ctrl or r["body_id"] not in controls or r["state"] in ("Huella humana", "Indicios de intervencion humana", "Evidencia reforzada de intervencion")]
 options = [r["body_id"] for r in visible]
 
 st.sidebar.subheader("Capa del mapa 3D")
@@ -124,12 +138,14 @@ with left:
 
 with right:
     SEVERITY = {"Huella humana": 0, "Alerta temprana": 1, "Sin explicar": 2, "Causa climatica": 3, "Intacto": 4}
-    st.subheader("Alertas: donde actuar primero")
+    SEVERITY.update({"Evidencia reforzada de intervencion": 0, "Indicios de intervencion humana": 1,
+                     "Perdida no explicada": 2, "Evidencia insuficiente": 3, "Sin perdida anomala detectada": 4})
+    st.subheader("Casos que requieren revisión")
     # una gemela tambien puede resultar con huella humana: se muestra igual (hallazgo del sistema)
-    alerts = [r for r in results if r["state"] in ("Alerta temprana", "Huella humana")]
+    alerts = [r for r in results if r["state"] in ("Alerta temprana", "Huella humana", "Indicios de intervencion humana", "Evidencia reforzada de intervencion", "Perdida no explicada")]
     alerts.sort(key=lambda r: (SEVERITY[r["state"]], r["trend"]["change_pct"]))
     if not alerts:
-        st.caption("Ningun cuerpo de agua con huella humana o alerta temprana.")
+        st.caption("Sin casos que cumplan actualmente los criterios de indicios o pérdida anómala.")
     for r in alerts:
         sus = r["suspects"][0]["label"] if r["suspects"] else "-"
         tag = " (era gemela de control)" if r["body_id"] in controls else ""
@@ -164,7 +180,11 @@ c1.metric("Cambio desde el periodo base", f"{r['trend']['change_pct']:+.0f}%")
 c2.metric("Tendencia (Sen)", f"{r['trend']['sen_ha_per_year']:+.1f} ha/ano",
           help=f"Mann-Kendall p={r['trend']['p']:.3f}, corregido por pruebas multiples p={r['trend']['p_holm']:.3f}")
 c3.markdown(f"<div style='font-size:0.875rem'>Estado</div><div style='font-size:1.6rem;color:rgb{tuple(STATE_COLORS[r['state']])}'>{r['state']}</div>", unsafe_allow_html=True)
-c4.metric("Confianza en la huella humana", r["confidence"], f"{r['n_pass']} de 3 pruebas", delta_color="off")
+c4.metric("Nivel de evidencia", r["confidence"])
+if r.get("quality"):
+    st.caption(f"Modelo: {r.get('selected_model')}. Las pruebas no equivalen a una probabilidad de intervención.")
+    if not r["quality"]["eligible"] or not r.get("model_validation", {}).get("reliable", False):
+        st.warning("Evidencia insuficiente: revisar calidad y validación del período base.")
 st.info(STATE_ACTION[r["state"]])
 
 st.subheader("Antes y despues")
@@ -200,10 +220,10 @@ else:
 
 g1, g2 = st.columns([3, 2])
 with g1:
-    st.subheader("Observado contra lo que explica el clima")
-    ts = pd.DataFrame({"year": r["years"], "Observado": r["observed"], "Esperado por el clima": r["expected"],
+    st.subheader("Observado contra la referencia modelada")
+    ts = pd.DataFrame({"year": r["years"], "Observado": r["observed"], "Referencia modelada": r["expected"],
                        "oni": r["oni"]})
-    long = ts.melt(id_vars=["year"], value_vars=["Observado", "Esperado por el clima"], var_name="serie", value_name="ha")
+    long = ts.melt(id_vars=["year"], value_vars=["Observado", "Referencia modelada"], var_name="serie", value_name="ha")
     nino = ts[ts.oni >= 0.5]
     xs = alt.Scale(domain=[r["years"][0], r["years"][-1] + 1], zero=False)
     bands = alt.Chart(nino).mark_rect(opacity=0.15, color="#e6a028").encode(
@@ -212,23 +232,28 @@ with g1:
         x=alt.X("year:Q", axis=alt.Axis(format="d"), title=None, scale=xs),
         y=alt.Y("ha:Q", title="Superficie de agua (ha)"),
         color=alt.Color("serie:N", legend=alt.Legend(orient="bottom", title=None)),
-        strokeDash=alt.condition(alt.datum.serie == "Esperado por el clima", alt.value([5, 3]), alt.value([0])))
+        strokeDash=alt.condition(alt.datum.serie == "Referencia modelada", alt.value([5, 3]), alt.value([0])))
     base_rule = alt.Chart(pd.DataFrame({"year": [r["baseline_end"]]})).mark_rule(color="gray").encode(x=alt.X("year:Q", scale=xs))
-    st.altair_chart(bands + lines + base_rule, use_container_width=True)
+    uncertainty = alt.Chart(pd.DataFrame({"year": r["years"], "lower": r.get("expected_lower", r["expected"]),
+                                          "upper": r.get("expected_upper", r["expected"])})).mark_area(opacity=.15, color="#477fa8").encode(
+        x="year:Q", y="lower:Q", y2="upper:Q")
+    st.altair_chart(bands + uncertainty + lines + base_rule, use_container_width=True)
+    if r.get("interval_level"):
+        st.caption(f"Banda bootstrap nominal {r['interval_level']:.0%}, aproximada; cobertura posterior: {r['backtest'].get('coverage', 0):.0%}.")
     st.caption(f"Franjas: anos de El Nino (ONI ≥ 0.5). Linea gris: fin del periodo de entrenamiento ({r['baseline_end']}).")
 
 with g2:
-    st.subheader("De donde viene el cambio")
+    st.subheader("Cambio modelado y diferencia no atribuida")
     dec = pd.DataFrame([{"causa": k, "ha": v} for k, v in r["decomposition_ha"].items()])
     st.altair_chart(alt.Chart(dec).mark_bar().encode(
         y=alt.Y("causa:N", sort=list(r["decomposition_ha"].keys()), title=None),
         x=alt.X("ha:Q", title="Hectareas ganadas (+) o perdidas (-)"),
         color=alt.condition(alt.datum.ha < 0, alt.value("#d64541"), alt.value("#2896c8"))),
         use_container_width=True)
-    st.caption("Huella humana solo se asigna con 2 o mas pruebas; si no, ese residuo queda como sin explicar.")
+    st.caption("La diferencia de tendencias no se asigna numéricamente a una causa humana. Los componentes no son porcentajes causales.")
 
 st.subheader("Las tres pruebas")
-names = {"clima": "1. Lo que el clima no explica", "control": "2. Gemela de control", "coincidencia": "3. Coincidencia en el tiempo"}
+names = {"clima": "1. Anomalía frente a la referencia", "control": "2. Control elegible", "coincidencia": "3. Coincidencia temporal y asociación negativa"}
 for k, t in r["tests"].items():
     st.markdown(f"{'✅' if t['pass'] else '⬜'} **{names[k]}** — {t['detail']}")
 
@@ -300,9 +325,11 @@ else:
     st.caption("Sin registro de auditoria todavia: se crea al correr run_engine.py.")
 
 with st.expander("Modo tecnico"):
-    st.write(f"R2 del modelo de clima (periodo base hasta {r['baseline_end']}): {r['climate_r2']:.2f}")
+    st.write("R² en entrenamiento:", r["climate_r2"])
+    st.dataframe(pd.DataFrame(r.get("model_comparison", [])), hide_index=True)
+    st.json({"calidad": r.get("quality"), "validacion": r.get("model_validation"), "control": r.get("control_validation")})
     st.write("Validacion con el pasado (error despues del periodo base):", r["backtest"])
-    st.caption("En una gemela de control el error debe ser bajo; en un caso con huella humana el error alto es la senal.")
+    st.caption("El error alto por sí solo no identifica intervención. Los controles necesitan revisión independiente y validación.")
     st.json(r["tests"])
     st.download_button("Descargar resultados (JSON)", results_path.read_bytes(), "uma_results.json")
 

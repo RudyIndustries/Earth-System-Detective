@@ -1,8 +1,11 @@
 # Uma - detective de huella humana en el agua de Bolivia
 
 NASA Space Apps 2026, reto *Be an Earth System Trend Detective*.
-Separa cuánto de la pérdida de un cuerpo de agua explica el clima (sequía, El Niño) y cuánto no,
-y audita qué actividad humana es la sospechosa.
+Compara la evolución del agua con referencias climáticas, detecta anomalías con incertidumbre
+y evalúa indicios de presión humana. No asigna automáticamente una causa a un residuo.
+
+La implementación conservadora y sus límites están documentados en [VALIDACION_MODELO.md](VALIDACION_MODELO.md).
+Los resultados actuales están en [data/real/validation/REPORT.md](data/real/validation/REPORT.md).
 
 ## Estructura
 
@@ -115,18 +118,12 @@ comparador antes/después.
 
 ## Cómo decide el motor
 
-1. **Prueba 1, clima.** Modelo `agua ~ lluvia + lluvia(t-1) + temperatura + ONI` entrenado solo en el periodo base
-   (por defecto hasta 2000). Pasa si el residuo cae de forma significativa (Mann-Kendall p < 0.05) y en más de 10%
-   de la media base.
-2. **Prueba 2, control.** Pasa si el residuo, en % de la media base, cae más que el de la gemela (Mann-Kendall
-   sobre la diferencia).
-3. **Prueba 3, coincidencia.** Pasa si el sospechoso principal crece de forma significativa, empieza a crecer
-   0 a 5 años antes del quiebre del residuo (Pettitt) y se correlaciona negativamente con él.
+1. **Calidad y validación.** Excluye agua imputada del ajuste y compara climatología, OLS, Ridge y regresión con memoria residual AR(1), usando solo cortes dentro del período base. Si la calidad o la validación son insuficientes, lo comunica.
+2. **Anomalía.** Contrasta tendencia residual y efecto material, exige persistencia bajo una banda bootstrap aproximada y corrige los contrastes entre cuerpos de agua. Publica la cobertura posterior de las bandas.
+3. **Control.** Una gemela es candidata hasta documentar su elegibilidad independiente. Se revisan similitud previa, error y cobertura; si falla, su prueba no se habilita.
+4. **Presión.** Exige crecimiento, antecedencia y signo negativo en la asociación de cambios anuales, con corrección de Holm y contrastes temporales exploratorios.
+5. **Conclusión.** No basta con aprobar dos pruebas. Hay estados de evidencia insuficiente, pérdida no explicada e indicios; la evidencia reforzada exige documentación independiente revisada. La diferencia de tendencias no se reparte numéricamente como causa humana.
 
-Confianza: 3 pruebas = alta, 2 = media, 0 o 1 = baja. La huella humana solo se asigna en la descomposición con
-2 o más pruebas; si no, queda como "sin explicar".
+La política está en `config/evidence_policy.json`; sus umbrales son provisionales y configurables. Las revisiones de controles y los eventos documentados comienzan vacíos: no se inventan confirmaciones. Los placebos en controles candidatos son exploratorios y no constituyen una tasa confirmada de falsos positivos. No hay métricas de clasificación humana contra etiquetas independientes disponibles.
 
-Estados: **Huella humana** (presión sube y residuo cae), **Causa climática** (el agua cae pero el residuo no),
-**Alerta temprana** (presión sube, residuo estable), **Sin explicar** (residuo cae sin presión medida), **Intacto**.
-
-Limitación: prueba coincidencia y consistencia, no causalidad estricta.
+La evaluación posterior usa clima observado: es retrospectiva y condicional, no un pronóstico operativo de lluvia. Las bandas no se declaran calibradas. La documentación detalla qué datos y revisiones faltan para una atribución confirmatoria.
