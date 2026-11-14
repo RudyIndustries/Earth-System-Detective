@@ -1,0 +1,83 @@
+[
+ {
+  "kind": "Ciudad o pueblo",
+  "name": "Colonia Menonita El Tinto",
+  "detail": "town",
+  "lat": -17.8201,
+  "lon": -61.54416,
+  "dist_km": 33.6,
+  "osm": "https://www.openstreetmap.org/node/6751325416"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -17.60427,
+  "lon": -61.41711,
+  "dist_km": 6.3,
+  "osm": "https://www.openstreetmap.org/way/764409767"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -17.61551,
+  "lon": -61.40337,
+  "dist_km": 7.3,
+  "osm": "https://www.openstreetmap.org/way/764409769"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -17.61621,
+  "lon": -61.40402,
+  "dist_km": 7.4,
+  "osm": "https://www.openstreetmap.org/way/764409768"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -17.66285,
+  "lon": -61.31032,
+  "dist_km": 15.7,
+  "osm": "https://www.openstreetmap.org/way/723845527"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -17.7703,
+  "lon": -61.4704,
+  "dist_km": 25.6,
+  "osm": "https://www.openstreetmap.org/way/723502995"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -17.57131,
+  "lon": -61.15707,
+  "dist_km": 25.8,
+  "osm": "https://www.openstreetmap.org/way/947191931"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -17.77956,
+  "lon": -61.4758,
+  "dist_km": 26.7,
+  "osm": "https://www.openstreetmap.org/way/723501360"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -17.79173,
+  "lon": -61.48209,
+  "dist_km": 28.2,
+  "osm": "https://www.openstreetmap.org/way/723513793"
+ }
+]

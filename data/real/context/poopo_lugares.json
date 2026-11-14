@@ -1,0 +1,938 @@
+[
+ {
+  "kind": "Ciudad o pueblo",
+  "name": "Challapata",
+  "detail": "city",
+  "lat": -18.90216,
+  "lon": -66.77505,
+  "dist_km": 29.5,
+  "osm": "https://www.openstreetmap.org/node/795493512"
+ },
+ {
+  "kind": "Ciudad o pueblo",
+  "name": "Uncía",
+  "detail": "town",
+  "lat": -18.46651,
+  "lon": -66.56819,
+  "dist_km": 66.1,
+  "osm": "https://www.openstreetmap.org/node/794378368"
+ },
+ {
+  "kind": "Ciudad o pueblo",
+  "name": "Siglo XX",
+  "detail": "town",
+  "lat": -18.42139,
+  "lon": -66.58948,
+  "dist_km": 67.9,
+  "osm": "https://www.openstreetmap.org/node/795493670"
+ },
+ {
+  "kind": "Ciudad o pueblo",
+  "name": "Llallagua",
+  "detail": "city",
+  "lat": -18.42274,
+  "lon": -66.58518,
+  "dist_km": 68.1,
+  "osm": "https://www.openstreetmap.org/node/794377784"
+ },
+ {
+  "kind": "Industria",
+  "name": "Planta de Cerveza Huari",
+  "detail": "beer",
+  "lat": -19.0106,
+  "lon": -66.78105,
+  "dist_km": 33.4,
+  "osm": "https://www.openstreetmap.org/way/471961528"
+ },
+ {
+  "kind": "Industria",
+  "name": "Ingenio Avicaya",
+  "detail": "",
+  "lat": -18.52422,
+  "lon": -66.88408,
+  "dist_km": 40.1,
+  "osm": "https://www.openstreetmap.org/way/141302230"
+ },
+ {
+  "kind": "Industria",
+  "name": "Antiguo Ingenio Miraflores 1900",
+  "detail": "",
+  "lat": -18.4702,
+  "lon": -66.57776,
+  "dist_km": 65.1,
+  "osm": "https://www.openstreetmap.org/node/9231033243"
+ },
+ {
+  "kind": "Industria",
+  "name": "LA SALVADORA",
+  "detail": "",
+  "lat": -18.44859,
+  "lon": -66.59707,
+  "dist_km": 65.2,
+  "osm": "https://www.openstreetmap.org/way/802018655"
+ },
+ {
+  "kind": "Industria",
+  "name": "Antiguo Ingenio Vistoria",
+  "detail": "",
+  "lat": -18.46784,
+  "lon": -66.57346,
+  "dist_km": 65.6,
+  "osm": "https://www.openstreetmap.org/node/9231033242"
+ },
+ {
+  "kind": "Industria",
+  "name": "Planta de Tratamiento de Aguas",
+  "detail": "",
+  "lat": -18.46767,
+  "lon": -66.55072,
+  "dist_km": 67.5,
+  "osm": "https://www.openstreetmap.org/way/502280863"
+ },
+ {
+  "kind": "Industria",
+  "name": "",
+  "detail": "",
+  "lat": -18.41986,
+  "lon": -66.59064,
+  "dist_km": 67.9,
+  "osm": "https://www.openstreetmap.org/node/13913119268"
+ },
+ {
+  "kind": "Industria",
+  "name": "Mina Siglo XX, zona minera",
+  "detail": "mine",
+  "lat": -18.41978,
+  "lon": -66.59086,
+  "dist_km": 67.9,
+  "osm": "https://www.openstreetmap.org/way/642622724"
+ },
+ {
+  "kind": "Industria",
+  "name": "Depósito de Chatarra",
+  "detail": "scrap_yard",
+  "lat": -18.4186,
+  "lon": -66.59175,
+  "dist_km": 67.9,
+  "osm": "https://www.openstreetmap.org/way/642622732"
+ },
+ {
+  "kind": "Industria",
+  "name": "zona minera, y chatarreria",
+  "detail": "scrap_yard",
+  "lat": -18.41972,
+  "lon": -66.59046,
+  "dist_km": 67.9,
+  "osm": "https://www.openstreetmap.org/way/1526528813"
+ },
+ {
+  "kind": "Industria",
+  "name": "Ingenio Minero Sink and Float.",
+  "detail": "mine",
+  "lat": -18.4188,
+  "lon": -66.589,
+  "dist_km": 68.1,
+  "osm": "https://www.openstreetmap.org/way/473417796"
+ },
+ {
+  "kind": "Industria",
+  "name": "Planta Kenko",
+  "detail": "mine",
+  "lat": -18.42011,
+  "lon": -66.55911,
+  "dist_km": 70.3,
+  "osm": "https://www.openstreetmap.org/way/381421099"
+ },
+ {
+  "kind": "Industria",
+  "name": "Empresa Minera Catavi",
+  "detail": "tin",
+  "lat": -18.41081,
+  "lon": -66.56342,
+  "dist_km": 70.6,
+  "osm": "https://www.openstreetmap.org/way/381421005"
+ },
+ {
+  "kind": "Industria",
+  "name": "",
+  "detail": "",
+  "lat": -18.41005,
+  "lon": -66.5642,
+  "dist_km": 70.6,
+  "osm": "https://www.openstreetmap.org/way/642005020"
+ },
+ {
+  "kind": "Industria",
+  "name": "Lupi Lupi",
+  "detail": "",
+  "lat": -18.3728,
+  "lon": -66.50958,
+  "dist_km": 77.6,
+  "osm": "https://www.openstreetmap.org/way/473407892"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -18.47307,
+  "lon": -66.84737,
+  "dist_km": 46.9,
+  "osm": "https://www.openstreetmap.org/way/1311233793"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -18.46995,
+  "lon": -66.84592,
+  "dist_km": 47.3,
+  "osm": "https://www.openstreetmap.org/way/1311233794"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -18.47334,
+  "lon": -66.83267,
+  "dist_km": 47.6,
+  "osm": "https://www.openstreetmap.org/way/1311233788"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -18.47061,
+  "lon": -66.83125,
+  "dist_km": 48.0,
+  "osm": "https://www.openstreetmap.org/way/1311233792"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -18.46965,
+  "lon": -66.83056,
+  "dist_km": 48.1,
+  "osm": "https://www.openstreetmap.org/way/1311233789"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -18.469,
+  "lon": -66.82969,
+  "dist_km": 48.2,
+  "osm": "https://www.openstreetmap.org/way/1311233790"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -18.46834,
+  "lon": -66.82858,
+  "dist_km": 48.3,
+  "osm": "https://www.openstreetmap.org/way/1311233791"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "mine",
+  "lat": -18.43863,
+  "lon": -66.86161,
+  "dist_km": 49.8,
+  "osm": "https://www.openstreetmap.org/way/1182616659"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -18.37843,
+  "lon": -66.95736,
+  "dist_km": 53.2,
+  "osm": "https://www.openstreetmap.org/way/1312184066"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -18.37744,
+  "lon": -66.95713,
+  "dist_km": 53.4,
+  "osm": "https://www.openstreetmap.org/way/1312184067"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "mine",
+  "lat": -18.3752,
+  "lon": -66.96444,
+  "dist_km": 53.5,
+  "osm": "https://www.openstreetmap.org/way/1312184064"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -18.37205,
+  "lon": -66.9604,
+  "dist_km": 53.9,
+  "osm": "https://www.openstreetmap.org/way/1312184068"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "mine",
+  "lat": -18.36697,
+  "lon": -66.96282,
+  "dist_km": 54.4,
+  "osm": "https://www.openstreetmap.org/way/1312184059"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -18.36729,
+  "lon": -66.96175,
+  "dist_km": 54.4,
+  "osm": "https://www.openstreetmap.org/way/1312184069"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -18.36652,
+  "lon": -66.96187,
+  "dist_km": 54.5,
+  "osm": "https://www.openstreetmap.org/way/1312184070"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "mine",
+  "lat": -18.3671,
+  "lon": -66.93682,
+  "dist_km": 54.9,
+  "osm": "https://www.openstreetmap.org/way/1182568655"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -19.38488,
+  "lon": -67.17528,
+  "dist_km": 60.8,
+  "osm": "https://www.openstreetmap.org/way/368966934"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "mine",
+  "lat": -18.4645,
+  "lon": -66.56406,
+  "dist_km": 66.6,
+  "osm": "https://www.openstreetmap.org/way/684786307"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "mine",
+  "lat": -18.46377,
+  "lon": -66.56233,
+  "dist_km": 66.8,
+  "osm": "https://www.openstreetmap.org/way/684786308"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "mine",
+  "lat": -18.46279,
+  "lon": -66.56079,
+  "dist_km": 67.0,
+  "osm": "https://www.openstreetmap.org/way/684786305"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -18.46323,
+  "lon": -66.5591,
+  "dist_km": 67.1,
+  "osm": "https://www.openstreetmap.org/way/684786304"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "Mina Siglo XX, zona minera",
+  "detail": "mine",
+  "lat": -18.41978,
+  "lon": -66.59086,
+  "dist_km": 67.9,
+  "osm": "https://www.openstreetmap.org/way/642622724"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "Ingenio Minero Sink and Float.",
+  "detail": "mine",
+  "lat": -18.4188,
+  "lon": -66.589,
+  "dist_km": 68.1,
+  "osm": "https://www.openstreetmap.org/way/473417796"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "Desmontes Mina Siglo XX",
+  "detail": "tin",
+  "lat": -18.41038,
+  "lon": -66.59197,
+  "dist_km": 68.5,
+  "osm": "https://www.openstreetmap.org/way/473415933"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "Planta Kenko",
+  "detail": "mine",
+  "lat": -18.42011,
+  "lon": -66.55911,
+  "dist_km": 70.3,
+  "osm": "https://www.openstreetmap.org/way/381421099"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "Empresa Minera Catavi",
+  "detail": "tin",
+  "lat": -18.41081,
+  "lon": -66.56342,
+  "dist_km": 70.6,
+  "osm": "https://www.openstreetmap.org/way/381421005"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "Relaves Catavi",
+  "detail": "tin",
+  "lat": -18.41597,
+  "lon": -66.55508,
+  "dist_km": 70.9,
+  "osm": "https://www.openstreetmap.org/way/381421011"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Canal de Riego Centro Tacagua",
+  "detail": "",
+  "lat": -18.8316,
+  "lon": -66.76287,
+  "dist_km": 30.2,
+  "osm": "https://www.openstreetmap.org/way/1331396221"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Canal de Riego Sud Tacagua",
+  "detail": "",
+  "lat": -18.8352,
+  "lon": -66.76074,
+  "dist_km": 30.4,
+  "osm": "https://www.openstreetmap.org/way/1331396220"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Canal de Riego Centro Sud Tacagua",
+  "detail": "",
+  "lat": -18.83075,
+  "lon": -66.74655,
+  "dist_km": 31.9,
+  "osm": "https://www.openstreetmap.org/way/1331396208"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.59012,
+  "lon": -66.89872,
+  "dist_km": 32.9,
+  "osm": "https://www.openstreetmap.org/way/224335622"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Canal de Riego Norte Tacagua",
+  "detail": "",
+  "lat": -18.82203,
+  "lon": -66.73637,
+  "dist_km": 33.1,
+  "osm": "https://www.openstreetmap.org/way/502400915"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Canal de Riego Norte Tacagua",
+  "detail": "",
+  "lat": -18.82585,
+  "lon": -66.73386,
+  "dist_km": 33.3,
+  "osm": "https://www.openstreetmap.org/way/1331396212"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Canal de Riego Tacagua",
+  "detail": "",
+  "lat": -18.82632,
+  "lon": -66.7336,
+  "dist_km": 33.3,
+  "osm": "https://www.openstreetmap.org/way/1331396213"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Canal de Riego Tacagua",
+  "detail": "",
+  "lat": -18.82659,
+  "lon": -66.73312,
+  "dist_km": 33.4,
+  "osm": "https://www.openstreetmap.org/way/1331396209"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Presa Tacagua",
+  "detail": "",
+  "lat": -18.82653,
+  "lon": -66.73314,
+  "dist_km": 33.4,
+  "osm": "https://www.openstreetmap.org/way/1331396214"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.82566,
+  "lon": -66.73235,
+  "dist_km": 33.5,
+  "osm": "https://www.openstreetmap.org/way/1331396215"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Represa Tacagua",
+  "detail": "",
+  "lat": -18.82097,
+  "lon": -66.71874,
+  "dist_km": 34.9,
+  "osm": "https://www.openstreetmap.org/relation/3310150"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Represa",
+  "detail": "",
+  "lat": -18.57543,
+  "lon": -66.84153,
+  "dist_km": 37.5,
+  "osm": "https://www.openstreetmap.org/way/838005768"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Embalse",
+  "detail": "",
+  "lat": -18.57565,
+  "lon": -66.83793,
+  "dist_km": 37.7,
+  "osm": "https://www.openstreetmap.org/way/838006082"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -19.22104,
+  "lon": -66.92617,
+  "dist_km": 43.2,
+  "osm": "https://www.openstreetmap.org/way/374956328"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Represa de Colas de la Mina Bolivar",
+  "detail": "",
+  "lat": -18.46548,
+  "lon": -66.87271,
+  "dist_km": 46.6,
+  "osm": "https://www.openstreetmap.org/way/1052577012"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.47782,
+  "lon": -66.83525,
+  "dist_km": 47.1,
+  "osm": "https://www.openstreetmap.org/way/1311233787"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.38009,
+  "lon": -66.97365,
+  "dist_km": 52.8,
+  "osm": "https://www.openstreetmap.org/way/416208474"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Represa",
+  "detail": "",
+  "lat": -18.38504,
+  "lon": -66.9316,
+  "dist_km": 53.1,
+  "osm": "https://www.openstreetmap.org/way/1182564480"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Embalse de Represa",
+  "detail": "",
+  "lat": -18.38421,
+  "lon": -66.92861,
+  "dist_km": 53.3,
+  "osm": "https://www.openstreetmap.org/way/1182564483"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.45851,
+  "lon": -66.75126,
+  "dist_km": 53.6,
+  "osm": "https://www.openstreetmap.org/way/1361289762"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.45783,
+  "lon": -66.74849,
+  "dist_km": 53.8,
+  "osm": "https://www.openstreetmap.org/way/1361289761"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.35827,
+  "lon": -66.96485,
+  "dist_km": 55.3,
+  "osm": "https://www.openstreetmap.org/way/1182529932"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.3573,
+  "lon": -66.96493,
+  "dist_km": 55.4,
+  "osm": "https://www.openstreetmap.org/way/1182529920"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.64522,
+  "lon": -66.56783,
+  "dist_km": 55.5,
+  "osm": "https://www.openstreetmap.org/way/394124031"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.35642,
+  "lon": -66.96548,
+  "dist_km": 55.5,
+  "osm": "https://www.openstreetmap.org/way/1182593805"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.64504,
+  "lon": -66.56749,
+  "dist_km": 55.6,
+  "osm": "https://www.openstreetmap.org/way/394124037"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Represa",
+  "detail": "",
+  "lat": -19.23386,
+  "lon": -66.70515,
+  "dist_km": 55.9,
+  "osm": "https://www.openstreetmap.org/way/276751345"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Embalse de Represa",
+  "detail": "",
+  "lat": -19.23433,
+  "lon": -66.70383,
+  "dist_km": 56.1,
+  "osm": "https://www.openstreetmap.org/way/276751515"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.43787,
+  "lon": -66.73035,
+  "dist_km": 56.7,
+  "osm": "https://www.openstreetmap.org/way/700924864"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.39979,
+  "lon": -66.65691,
+  "dist_km": 64.8,
+  "osm": "https://www.openstreetmap.org/way/294294825"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.39807,
+  "lon": -66.6567,
+  "dist_km": 65.0,
+  "osm": "https://www.openstreetmap.org/way/294294823"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Represa",
+  "detail": "",
+  "lat": -18.48915,
+  "lon": -66.55925,
+  "dist_km": 65.3,
+  "osm": "https://www.openstreetmap.org/way/684786292"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Embalse de Represa",
+  "detail": "",
+  "lat": -18.48931,
+  "lon": -66.55935,
+  "dist_km": 65.3,
+  "osm": "https://www.openstreetmap.org/way/999338727"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Represa",
+  "detail": "",
+  "lat": -18.48837,
+  "lon": -66.55855,
+  "dist_km": 65.4,
+  "osm": "https://www.openstreetmap.org/way/999338725"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Embalse de Represa",
+  "detail": "",
+  "lat": -18.48856,
+  "lon": -66.55871,
+  "dist_km": 65.4,
+  "osm": "https://www.openstreetmap.org/way/999338726"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.48978,
+  "lon": -66.55455,
+  "dist_km": 65.6,
+  "osm": "https://www.openstreetmap.org/way/684786293"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Embalse de Represa",
+  "detail": "",
+  "lat": -18.50639,
+  "lon": -66.53552,
+  "dist_km": 66.1,
+  "osm": "https://www.openstreetmap.org/way/1058045991"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Embalse Katiri",
+  "detail": "",
+  "lat": -18.41637,
+  "lon": -66.6179,
+  "dist_km": 66.2,
+  "osm": "https://www.openstreetmap.org/way/312432944"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Represa",
+  "detail": "",
+  "lat": -18.50605,
+  "lon": -66.53529,
+  "dist_km": 66.2,
+  "osm": "https://www.openstreetmap.org/way/1058045990"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.47872,
+  "lon": -66.55653,
+  "dist_km": 66.2,
+  "osm": "https://www.openstreetmap.org/way/1110640785"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Embalse Represa Pukusiri",
+  "detail": "",
+  "lat": -18.51434,
+  "lon": -66.52779,
+  "dist_km": 66.3,
+  "osm": "https://www.openstreetmap.org/way/713864731"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Presa Katiri",
+  "detail": "",
+  "lat": -18.41493,
+  "lon": -66.61597,
+  "dist_km": 66.4,
+  "osm": "https://www.openstreetmap.org/way/312432991"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Rio Katiri",
+  "detail": "",
+  "lat": -18.41496,
+  "lon": -66.61597,
+  "dist_km": 66.4,
+  "osm": "https://www.openstreetmap.org/way/312432992"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Represa Pukusiri",
+  "detail": "",
+  "lat": -18.51371,
+  "lon": -66.52751,
+  "dist_km": 66.4,
+  "osm": "https://www.openstreetmap.org/way/713864730"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.41396,
+  "lon": -66.61489,
+  "dist_km": 66.6,
+  "osm": "https://www.openstreetmap.org/node/3182931068"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.40909,
+  "lon": -66.61283,
+  "dist_km": 67.1,
+  "osm": "https://www.openstreetmap.org/node/7378910390"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.45447,
+  "lon": -66.56684,
+  "dist_km": 67.1,
+  "osm": "https://www.openstreetmap.org/way/530023186"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.45442,
+  "lon": -66.56668,
+  "dist_km": 67.1,
+  "osm": "https://www.openstreetmap.org/way/530023187"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Laguna Cala Cala",
+  "detail": "",
+  "lat": -18.52388,
+  "lon": -66.50623,
+  "dist_km": 67.6,
+  "osm": "https://www.openstreetmap.org/way/375655010"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Represa Cala Cala",
+  "detail": "",
+  "lat": -18.52312,
+  "lon": -66.50584,
+  "dist_km": 67.7,
+  "osm": "https://www.openstreetmap.org/way/375655030"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.34779,
+  "lon": -66.66775,
+  "dist_km": 68.7,
+  "osm": "https://www.openstreetmap.org/way/294294824"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Represa Chiu",
+  "detail": "",
+  "lat": -18.46093,
+  "lon": -66.49622,
+  "dist_km": 72.5,
+  "osm": "https://www.openstreetmap.org/way/1132384346"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Embalse de Represa Chiu",
+  "detail": "",
+  "lat": -18.46065,
+  "lon": -66.49528,
+  "dist_km": 72.5,
+  "osm": "https://www.openstreetmap.org/way/1132384347"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Sauta",
+  "detail": "",
+  "lat": -18.37643,
+  "lon": -66.54991,
+  "dist_km": 74.3,
+  "osm": "https://www.openstreetmap.org/way/1351242650"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Desbordamiento de Embalse",
+  "detail": "",
+  "lat": -18.37462,
+  "lon": -66.51761,
+  "dist_km": 76.9,
+  "osm": "https://www.openstreetmap.org/way/1305430481"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Antigua Represa El Tranque",
+  "detail": "",
+  "lat": -18.37266,
+  "lon": -66.51599,
+  "dist_km": 77.2,
+  "osm": "https://www.openstreetmap.org/way/1305430486"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -18.3816,
+  "lon": -66.48542,
+  "dist_km": 78.9,
+  "osm": "https://www.openstreetmap.org/way/1361271532"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Represa",
+  "detail": "",
+  "lat": -18.33553,
+  "lon": -66.52183,
+  "dist_km": 79.6,
+  "osm": "https://www.openstreetmap.org/way/1395097852"
+ }
+]

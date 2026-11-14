@@ -1,0 +1,9 @@
+body_id,name,lat,lon,kind,control_id,department
+A,Caso A - laguna con desmonte (ficticio),-16.1,-62.0,natural,A_ctrl,Ficticio
+A_ctrl,Gemela de control de A,-15.8,-61.7,natural,,Ficticio
+B,Caso B - laguna con causa climatica (ficticio),-18.9,-67.0,natural,B_ctrl,Ficticio
+B_ctrl,Gemela de control de B,-18.599999999999998,-66.7,natural,,Ficticio
+C,Caso C - laguna en alerta temprana (ficticio),-14.8,-64.9,natural,C_ctrl,Ficticio
+C_ctrl,Gemela de control de C,-14.5,-64.60000000000001,natural,,Ficticio
+D,Caso D - laguna con mineria (ficticio),-15.4,-68.4,natural,D_ctrl,Ficticio
+D_ctrl,Gemela de control de D,-15.1,-68.10000000000001,natural,,Ficticio

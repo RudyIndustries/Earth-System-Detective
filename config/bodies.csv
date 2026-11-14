@@ -1,0 +1,9 @@
+body_id,name,lat,lon,radius_km,kind,control_id,department,note
+poopo,Lago Poopó,-18.85,-67.05,40,natural,pozuelos,Oruro,Sospechosos esperados: riego y desvíos del Desaguadero; minería
+uru_uru,Lago Uru Uru,-18.07,-67.12,12,natural,pozuelos,Oruro,Sospechosos esperados: ciudad de Oruro; minería
+concepcion,Laguna Concepción,-17.55,-61.40,15,natural,san_matias,Santa Cruz,Sospechosos esperados: desmonte y agricultura (Chiquitanía)
+titicaca_menor,Lago Menor del Titicaca (Huiñaimarca),-16.35,-68.78,22,natural,andino_peru,La Paz,Caso climático esperado
+pozuelos,Laguna de Pozuelos (gemela altiplano; Argentina),-22.36,-66.00,8,natural,,Jujuy (Argentina),Gemela: área protegida a 3700 m fuera de la cadena del Desaguadero; elegida por gHM bajo sin mirar su tendencia
+chiquitania_este,Laguna de la Chiquitanía este (hallazgo),-16.53,-59.60,2.5,natural,san_matias,Santa Cruz,"Elegida como gemela por gHM bajo, pero el motor detecto huella humana (ganadería y desmonte desde 2001): pasa a ser caso"
+andino_peru,Lago altoandino de Puno (gemela; Perú),-16.73,-70.20,6,natural,,Puno (Perú),Gemela: lago natural fuera de la cuenca del Titicaca (r lluvia=0.58); elegida sin mirar su tendencia
+san_matias,Laguna del ANMI San Matías (gemela),-17.77,-57.80,3,natural,,Santa Cruz,"Gemela: dentro del área protegida San Matías (WDPA), gHM 0.09, lluvia r=0.54; elegida sin mirar su tendencia"

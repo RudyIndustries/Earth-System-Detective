@@ -1,0 +1,9 @@
+body_id,upstream_km2,n_subbasins,upstream_bodies
+poopo,114242,183,"uru_uru,titicaca_menor"
+uru_uru,91726,152,titicaca_menor
+concepcion,61294,70,
+titicaca_menor,57165,97,
+pozuelos,3932,9,
+chiquitania_este,5023,5,
+andino_peru,2716,1,
+san_matias,125982,157,chiquitania_este

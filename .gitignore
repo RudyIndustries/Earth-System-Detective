@@ -1,0 +1,20 @@
+# entorno de Python (cada uno lo crea con: python -m venv .venv)
+.venv/
+__pycache__/
+*.pyc
+
+# credenciales: nunca subir
+.config/
+*credentials*
+*.pem
+service-account*.json
+.streamlit/secrets.toml
+.env
+
+# registros de extraccion (se regeneran)
+data/real/*_log*.txt
+
+# sistema
+.DS_Store
+Thumbs.db
+desktop.ini

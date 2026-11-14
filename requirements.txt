@@ -1,0 +1,9 @@
+pandas
+numpy
+scipy
+statsmodels
+streamlit
+pydeck
+altair
+earthengine-api
+pillow
