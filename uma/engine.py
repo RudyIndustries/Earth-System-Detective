@@ -37,7 +37,9 @@ SUSPECT_LABELS = {
     "pasture_ha": "Ganaderia",
     "mining_ha": "Mineria",
     "urban_ha": "Crecimiento urbano",
-    "artificial_water_ha": "Represas y desvios",
+    "artificial_water_ha": "Represas y reservorios",
+    "mining_water_ha": "Pozas mineras",
+    "human_land_ha": "Uso humano del suelo (5 km)",
     "agri_ha": "Agricultura",
     "night_lights": "Luces nocturnas (ciudad e industria)",
     "population": "Poblacion",
@@ -282,9 +284,14 @@ def tag_areas(sus: pd.DataFrame) -> pd.DataFrame:
     return sus
 
 
+CONTEXT_ONLY = {"natural_water_ha"}  # series de contexto que no son sospechosos
+
+
 def audit_suspects(df, resid, sus: pd.DataFrame, resid_break: int | None, baseline_end: int) -> list[dict]:
     out = []
     for name, g in sus.groupby("suspect"):
+        if base_name(name) in CONTEXT_ONLY:
+            continue
         s = g.set_index("year")["value"].reindex(df.index).fillna(0.0)
         if s.std() == 0:
             continue
@@ -320,7 +327,7 @@ def audit_suspects(df, resid, sus: pd.DataFrame, resid_break: int | None, baseli
 
 # solo el cambio de uso del suelo dispara la alerta; poblacion y luces crecen en casi todas partes
 ALERT_SUSPECTS = {"mining_ha", "agri_ha", "pasture_ha", "urban_ha", "forest_loss_ha", "dry_crop_ha",
-                  "artificial_water_ha"}
+                  "artificial_water_ha", "mining_water_ha", "human_land_ha"}
 ALERT_GROWTH = 1.5   # el sospechoso debe crecer al menos 1.5 veces
 ALERT_MIN_HA = 50    # y en al menos 50 ha
 

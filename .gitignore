@@ -13,6 +13,7 @@ service-account*.json
 
 # registros de extraccion (se regeneran)
 data/real/*_log*.txt
+data/*_log*.txt
 
 # sistema
 .DS_Store

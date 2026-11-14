@@ -39,20 +39,30 @@ def main(argv=None):
     ap.add_argument("--project", required=True)
     ap.add_argument("--only", required=True)
     ap.add_argument("--suspects", default="", help="solo estos sospechosos, ej. population")
+    ap.add_argument("--area", choices=["cuenca_aporte", "subcuenca_local"], default="cuenca_aporte")
+    ap.add_argument("--context", action="store_true", help="tambien agua natural del area (tendencias opuestas)")
     a = ap.parse_args(argv)
     pick = set(filter(None, a.suspects.split(",")))
     ee.Initialize(project=a.project)
     out = ROOT / "data" / "real"
     up = pd.read_csv(out / "basins.csv").set_index("body_id")
     for body_id in a.only.split(","):
-        km2 = float(up.upstream_km2[body_id])
+        if a.area == "cuenca_aporte":
+            km2 = float(up.upstream_km2[body_id])
+            basin = basin_geometry(body_id)
+        else:
+            cfg = pd.read_csv(ROOT / "config" / "bodies.csv").set_index("body_id").loc[body_id]
+            pt = ee.Geometry.Point([cfg.lon, cfg.lat])
+            basin = gx.basin_for(pt).union(pt.buffer(float(cfg.radius_km) * 1000), 100)
+            km2 = basin.area(1000).getInfo() / 1e6
         gx.SCALE_MULT = 1 if km2 < 5000 else 3 if km2 < 50000 else 4
-        basin = basin_geometry(body_id)
         gx._mb_cache.clear()
+        gx._mbw_cache.clear()
         rows = []
-        print(f"== {body_id}: cuenca de aporte {km2:,.0f} km2, escala x{gx.SCALE_MULT}", flush=True)
-        for name, fn in gx.SUSPECTS.items():
-            if pick and name not in pick:
+        print(f"== {body_id}: {a.area} {km2:,.0f} km2, escala x{gx.SCALE_MULT}", flush=True)
+        todo = {**gx.SUSPECTS, **(gx.CONTEXT_SERIES if a.context else {})}
+        for name, fn in todo.items():
+            if pick and name not in pick and name not in gx.CONTEXT_SERIES:
                 continue
             print(f"   {name}", flush=True)
             try:
@@ -71,9 +81,9 @@ def main(argv=None):
             done = {n for n in pd.concat(rows).suspect.unique()}
             if "area" not in sus:
                 sus["area"] = "subcuenca_local"
-            keep = sus[~((sus.body_id == body_id) & sus.suspect.isin(done) & (sus.area == "cuenca_aporte"))]
+            keep = sus[~((sus.body_id == body_id) & sus.suspect.isin(done) & (sus.area == a.area))]
             for d in rows:
-                d["area"] = "cuenca_aporte"
+                d["area"] = a.area
             new = pd.concat([keep] + rows, ignore_index=True)
             new.to_csv(out / "suspects.csv", index=False)
 

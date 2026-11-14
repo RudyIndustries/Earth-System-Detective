@@ -14,6 +14,10 @@ y audita qué actividad humana es la sospechosa.
 | `uma/suspects_upstream.py` | P1 Datos | Sospechosos medidos en la cuenca de aporte (misma área que el clima) |
 | `uma/context.py` | P1 Datos | Alrededores: mapa de lo que apareció (MapBiomas, Hansen) y lugares de OpenStreetMap |
 | `uma/twins.py` | P2 Modelo | Búsqueda de gemelas de control (gHM, áreas protegidas, otra cuenca) |
+| `uma/national.py` | P2 Modelo | Barrido nacional: detecta las lagunas de Bolivia y les aplica un diagnóstico rápido |
+| `uma/alerts.py` | Operación | Vigilancia semanal de incendios (NASA FIRMS) con aviso por Telegram o correo |
+| `uma/hindcast.py` | P2 Modelo | Prueba hacia atrás: qué tan predictivo es el sistema |
+| `.github/workflows/alertas.yml` | Operación | Corre la vigilancia cada lunes en GitHub Actions |
 | `uma/engine.py` | P2 Modelo | Motor: tendencia, 3 pruebas, confianza, descomposición, sospechosos, estado, calidad |
 | `uma/audit.py` | P2 Modelo | Auditoría en SQLite (`data/real/uma.db`): corridas, veredictos, alertas, revisiones |
 | `uma/synthetic.py` | P2/P3 | Datos de prueba ficticios con el mismo formato |
@@ -151,3 +155,36 @@ escalas que se auditan por separado: "cerca" (subcuenca local) y "cuenca" (cuenc
 (`uma/suspects_upstream.py`). MapBiomas solo cubre la parte boliviana de cada cuenca.
 
 Limitación: prueba coincidencia y consistencia, no causalidad estricta.
+
+## Agua artificial y tendencias opuestas
+
+MapBiomas Agua Bolivia (colección 4, 1985-2025) clasifica cada cuerpo de agua. Los códigos se dedujeron en sitios
+conocidos: 11 natural, 22 represa o reservorio (Misicuni), 23 otra agua artificial (estanques), 24 poza minera
+(Tipuani). Uma usa `artificial_water_ha` (21-23) y `mining_water_ha` (24) como sospechosos, cerca y en la cuenca,
+y muestra en la tarjeta el agua natural contra la artificial.
+
+## Barrido nacional
+
+```bash
+.venv\Scripts\python -m uma.national --project TU-PROYECTO --max 300
+```
+
+Detecta lagunas (agua natural de MapBiomas Agua en al menos 25% de los años, al menos 100 ha, forma compacta para
+descartar ríos), baja el agua por año, el uso humano del suelo en un anillo de 5 km y el clima NASA POWER, y aplica
+el motor con una gemela regional sintética (mediana de lagunas con poca presión de la misma celda de 3 grados).
+Resultado en `data/national/`; la app lo muestra como capa del mapa 3D. Es un filtro para elegir dónde hacer el
+análisis completo, no un veredicto final.
+
+## Vigilancia semanal de incendios
+
+```bash
+.venv\Scripts\python -m uma.alerts --project TU-PROYECTO --dry-run   # revisar sin avisar
+.venv\Scripts\python -m uma.alerts --project TU-PROYECTO             # revisar y avisar
+```
+
+Cuenta focos de calor NASA FIRMS de los últimos 7 días cerca y en la cuenca de cada cuerpo de agua vigilado, y
+avisa si un cuerpo de agua en riesgo tiene al menos 5 focos y el doble de lo normal para esa semana (promedio de
+los 5 años anteriores). Para avisos, copiar `.env.example` como `.env` y completar Telegram o correo. Para que
+corra solo cada lunes: `.github/workflows/alertas.yml` (requiere una cuenta de servicio de Earth Engine guardada
+como secreto `GEE_SERVICE_ACCOUNT_KEY` en GitHub). Prueba retroactiva: con la semana al 2019-08-25 avisa en la
+laguna de la Chiquitanía este (163 focos cerca contra 1.2 normales).

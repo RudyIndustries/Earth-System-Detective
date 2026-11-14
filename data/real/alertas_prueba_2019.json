@@ -1,0 +1,102 @@
+{
+ "week_end": "2019-08-25",
+ "checked_at": "2026-11-14T16:07:17",
+ "notified": "simulacro (--dry-run)",
+ "rows": [
+  {
+   "body_id": "poopo",
+   "name": "Lago Poopó",
+   "state": "Causa climatica",
+   "window": "2019-08-18 a 2019-08-25",
+   "areas": {
+    "cerca": {
+     "focos": 0,
+     "normal": 2.4,
+     "alerta": false
+    },
+    "cuenca": {
+     "focos": 208,
+     "normal": 57.8,
+     "alerta": false
+    }
+   },
+   "alerta": false
+  },
+  {
+   "body_id": "uru_uru",
+   "name": "Lago Uru Uru",
+   "state": "Causa climatica",
+   "window": "2019-08-18 a 2019-08-25",
+   "areas": {
+    "cerca": {
+     "focos": 0,
+     "normal": 0.0,
+     "alerta": false
+    },
+    "cuenca": {
+     "focos": 202,
+     "normal": 45.6,
+     "alerta": false
+    }
+   },
+   "alerta": false
+  },
+  {
+   "body_id": "concepcion",
+   "name": "Laguna Concepción",
+   "state": "Huella humana",
+   "window": "2019-08-18 a 2019-08-25",
+   "areas": {
+    "cerca": {
+     "focos": 20,
+     "normal": 58.2,
+     "alerta": false
+    },
+    "cuenca": {
+     "focos": 1257,
+     "normal": 716.6,
+     "alerta": false
+    }
+   },
+   "alerta": false
+  },
+  {
+   "body_id": "titicaca_menor",
+   "name": "Lago Menor del Titicaca (Huiñaimarca)",
+   "state": "Sin explicar",
+   "window": "2019-08-18 a 2019-08-25",
+   "areas": {
+    "cerca": {
+     "focos": 20,
+     "normal": 1.2,
+     "alerta": true
+    },
+    "cuenca": {
+     "focos": 132,
+     "normal": 39.8,
+     "alerta": true
+    }
+   },
+   "alerta": true
+  },
+  {
+   "body_id": "chiquitania_este",
+   "name": "Laguna de la Chiquitanía este (hallazgo)",
+   "state": "Huella humana",
+   "window": "2019-08-18 a 2019-08-25",
+   "areas": {
+    "cerca": {
+     "focos": 163,
+     "normal": 1.2,
+     "alerta": true
+    },
+    "cuenca": {
+     "focos": 649,
+     "normal": 42.0,
+     "alerta": true
+    }
+   },
+   "alerta": true
+  }
+ ]
+}

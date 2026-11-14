@@ -80,7 +80,7 @@ def change_image(region, lake):
     for k in order:
         layer = masks[k].selfMask().visualize(palette=[CHANGES[k][0]])
         img = layer if img is None else img.blend(layer)
-    outline = ee.Image().byte().paint(ee.FeatureCollection([ee.Feature(lake)]), 1, 3).visualize(palette=["00e5ff"])
+    outline = ee.Image().byte().paint(ee.FeatureCollection([ee.Feature(lake)]), 1, 3).visualize(palette=["ffffff"])
     img = img.blend(outline)
     stats = {}
     for k in order:

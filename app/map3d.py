@@ -15,6 +15,10 @@ TERRAIN = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.p
 ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
 PLACE_COLORS = {"Mina o cantera": [255, 23, 68], "Industria": [255, 145, 0],
                 "Ciudad o pueblo": [213, 0, 249], "Represa o canal": [0, 229, 255]}
+def plain(text: str) -> str:
+    """Sin tildes ni enie: la capa de texto del mapa solo dibuja letras basicas."""
+    import unicodedata
+    return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
 DECODER = {"rScaler": 256, "gScaler": 1, "bScaler": 1 / 256, "offset": -32768}
 
 
@@ -56,21 +60,36 @@ def ee_ready() -> bool:
     return _EE_OK
 
 
-@lru_cache(maxsize=64)
-def live_texture(year: int, with_water: bool, fires: bool = False, day: str = "") -> str | None:
-    """URL de teselas de Earth Engine: Landsat de epoca seca del ano elegido, con el agua JRC encima.
+NATURAL_HEX = "0d2f8a"      # agua natural: azul oscuro
+ARTIFICIAL_HEX = "00f5ff"   # agua artificial: celeste neon
+NATURAL_RGB = [13, 47, 138]
+ARTIFICIAL_RGB = [0, 245, 255]
 
-    fires: focos de calor NASA FIRMS de los ultimos 7 dias (casi tiempo real). `day` solo invalida la cache.
+
+@lru_cache(maxsize=64)
+def live_texture(year: int, mode: str = "landsat", fires: bool = False, day: str = "") -> str | None:
+    """Teselas de Earth Engine para pintar sobre el relieve.
+
+    mode "agua": relieve sombreado (NASADEM) con el agua de MapBiomas Agua del ano: natural en azul oscuro,
+                 artificial (represas, estanques, pozas mineras) en celeste neon.
+    mode "landsat": Landsat de epoca seca del ano con el agua natural y artificial encima.
+    fires: focos de calor NASA FIRMS de los ultimos 7 dias. `day` solo invalida la cache.
     """
     if not ee_ready():
         return None
     import ee
-    from uma.gee_extract import DS, landsat_dry, landsat_vis
+    from uma.gee_extract import MB_WATER, landsat_dry, landsat_vis
     bolivia = ee.Geometry.Rectangle([-70.5, -23.5, -57.0, -9.5])
-    img = landsat_vis(landsat_dry(year, bolivia))
-    if with_water and year <= 2021:
-        wc = ee.ImageCollection(DS["jrc_yearly"]).filter(ee.Filter.eq("year", year)).first().select("waterClass")
-        img = img.blend(wc.gte(2).selfMask().visualize(palette=["1e88e5"], opacity=0.55))
+    if mode == "agua":
+        dem = ee.Image("NASA/NASADEM_HGT/001").select("elevation")
+        img = ee.Terrain.hillshade(dem).visualize(min=60, max=255, palette=["1b1f24", "8a929c"])
+    else:
+        img = landsat_vis(landsat_dry(min(year, 2024), bolivia))
+    cls = ee.Image(MB_WATER).select(f"classification_{min(max(year, 1985), 2025)}")
+    natural = cls.gte(11).And(cls.lte(14)).selfMask()
+    artificial = cls.gte(21).And(cls.lte(24)).selfMask()  # de lejos se ve con la capa de puntos neon
+    img = img.blend(natural.visualize(palette=[NATURAL_HEX], opacity=0.95))
+    img = img.blend(artificial.visualize(palette=[ARTIFICIAL_HEX]))
     if fires:
         now = ee.Date(day or ee.Date(0))
         firms = ee.ImageCollection("FIRMS").filterDate(now.advance(-7, "day"), now.advance(1, "day")).select("T21").max()
@@ -79,35 +98,58 @@ def live_texture(year: int, with_water: bool, fires: bool = False, day: str = ""
 
 
 # ------------------------------------------------------------------ deck
-def build_deck(rows: list[dict], selected: dict | None, texture: str, places: list | None = None) -> pdk.Deck:
+def build_deck(rows: list[dict], selected: dict | None, texture: str, places: list | None = None,
+               national: list | None = None, artificial: list | None = None, height_scale: float = 1.0) -> pdk.Deck:
     """rows: dicts con name, lat, lon, state, color, change, loss (perdida %, >= 0)."""
     for r in rows:
         r["z"] = elevation(round(r["lat"], 3), round(r["lon"], 3))
+        r["halo"] = list(r["color"]) + [70]
+        r["label"] = plain(r.get("label", r["name"]))
     terrain = pdk.Layer("TerrainLayer", id="relieve", elevation_decoder=DECODER, elevation_data=TERRAIN,
                         texture=texture, max_zoom=13, strategy="no-overlap")
-    columns = pdk.Layer("ColumnLayer", id="cuerpos", data=rows, get_position="[lon, lat, z]",
-                        get_elevation="loss", elevation_scale=12 if selected else 600,
-                        radius=250 if selected else 9000,
-                        get_fill_color="color", pickable=True, auto_highlight=True, extruded=True)
-    layers = [terrain, columns]
+    layers = [terrain]
+    if artificial:  # agua artificial de todo el pais: brillo + punto, en celeste neon
+        layers.append(pdk.Layer("ScatterplotLayer", id="artificial_brillo", data=artificial,
+                                get_position="[lon, lat, z]", get_fill_color=ARTIFICIAL_RGB + [60],
+                                get_radius="r_glow", radius_min_pixels=4, radius_max_pixels=40, pickable=False))
+        layers.append(pdk.Layer("ScatterplotLayer", id="artificial", data=artificial, get_position="[lon, lat, z]",
+                                get_fill_color=ARTIFICIAL_RGB, get_radius="r", radius_min_pixels=2,
+                                radius_max_pixels=14, pickable=True))
+    if national:
+        layers.append(pdk.Layer("ScatterplotLayer", id="nacional", data=national, get_position="[lon, lat, z]",
+                                get_fill_color="color", get_radius="radius", radius_min_pixels=5, radius_max_pixels=30,
+                                opacity=0.95, pickable=True, stroked=True, get_line_color=[255, 255, 255],
+                                line_width_min_pixels=1.5))
+    # halo de color alrededor de cada cuerpo de agua analizado: la senal se ve desde lejos
+    layers.append(pdk.Layer("ScatterplotLayer", id="halo", data=rows, get_position="[lon, lat, z]",
+                            get_fill_color="halo", get_line_color="color", get_radius=6000 if selected else 30000,
+                            radius_min_pixels=26, stroked=True, line_width_min_pixels=4, pickable=False))
+    layers.append(pdk.Layer("ColumnLayer", id="cuerpos", data=rows, get_position="[lon, lat, z]",
+                            get_elevation="loss", elevation_scale=(15 if selected else 900) * height_scale,
+                            radius=400 if selected else 14000, get_fill_color="color", get_line_color=[255, 255, 255],
+                            pickable=True, auto_highlight=True, extruded=True))
+    layers.append(pdk.Layer("TextLayer", id="etiquetas", data=rows, get_position="[lon, lat, z]", get_text="label",
+                            get_size=16, get_color=[255, 255, 255], get_pixel_offset=[0, -26], background=True,
+                            get_background_color=[10, 10, 10, 200], font_weight=700, billboard=True))
     if selected and places:
-        # mismos campos que las columnas para que el tooltip sirva a ambas capas
+        # mismos campos que las columnas para que el tooltip sirva a todas las capas
         pts = [dict(pl, z=elevation(round(pl["lat"], 3), round(pl["lon"], 3)) + 150,
                     color=PLACE_COLORS.get(pl["kind"], [255, 255, 255]),
-                    name=pl["name"] or "(sin nombre)", state=pl["kind"], change=f"a {pl['dist_km']} km")
+                    name=plain(pl["name"]) or "(sin nombre)", state=pl["kind"], change=f"a {pl['dist_km']} km")
                 for pl in places[:30]]
         layers.append(pdk.Layer("ScatterplotLayer", id="lugares", data=pts, get_position="[lon, lat, z]",
-                                get_fill_color="color", get_radius=350, radius_min_pixels=5, pickable=True,
-                                stroked=True, get_line_color=[0, 0, 0], line_width_min_pixels=1))
-        layers.append(pdk.Layer("TextLayer", id="nombres", data=[x for x in pts if x["name"]],
+                                get_fill_color="color", get_radius=400, radius_min_pixels=7, pickable=True,
+                                stroked=True, get_line_color=[255, 255, 255], line_width_min_pixels=2))
+        layers.append(pdk.Layer("TextLayer", id="nombres", data=[x for x in pts if x["name"] != "(sin nombre)"],
                                 get_position="[lon, lat, z]", get_text="name", get_size=13, get_color=[255, 255, 255],
-                                get_pixel_offset=[0, -14], background=True, get_background_color=[0, 0, 0, 160]))
+                                get_pixel_offset=[0, -16], background=True, get_background_color=[0, 0, 0, 170]))
     if selected:
         view = pdk.ViewState(latitude=selected["lat"], longitude=selected["lon"], zoom=9.3, pitch=60, bearing=-20)
     else:
-        view = pdk.ViewState(latitude=-17.2, longitude=-65.0, zoom=5.2, pitch=45, bearing=0)
+        view = pdk.ViewState(latitude=-16.6, longitude=-64.6, zoom=5.4, pitch=40, bearing=0)
     return pdk.Deck(layers=layers, initial_view_state=view, map_style=None,
-                    tooltip={"text": "{name}\n{state} · {change}"})
+                    tooltip={"html": "<b>{name}</b><br/>{state} · {change}",
+                             "style": {"backgroundColor": "#111", "color": "white", "fontSize": "14px"}})
 
 
 # ------------------------------------------------------------------ antes / despues
@@ -133,7 +175,7 @@ def before_after_html(before: Path, after: Path, label_a: str, label_b: str,
                         f"{' · ' + format(v['ha'], ',') + ' ha' if v.get('ha') else ''}</span>"
                         for v in legend.values())
         leg = (f"<label class='tog'><input type='checkbox' id='chkc' checked> Mostrar que aparecio alrededor</label>"
-               f"<div class='leg'>{items}<span><i style='background:#00e5ff'></i>Cuerpo de agua</span></div>")
+               f"<div class='leg'>{items}<span><i style='background:#ffffff'></i>Laguna analizada</span></div>")
     return f"""
 <style>
 .ba{{position:relative;width:100%;height:{height}px;overflow:hidden;border-radius:8px;background:#111;

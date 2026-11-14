@@ -339,6 +339,35 @@ def groundwater(basin):
     return pd.DataFrame(rows)
 
 
+MB_WATER = "projects/mapbiomas-public/assets/bolivia/water/collection4/mapbiomas_bolivia_collection4_water_bodies_v1"
+# tipos de cuerpo de agua de MapBiomas Agua Bolivia (deducidos en sitios conocidos): 11 natural,
+# 22 represa o reservorio (Misicuni), 23 otra agua artificial (estanques), 24 poza minera (Tipuani)
+WATER_TYPES = {"artificial_water_ha": [21, 22, 23], "mining_water_ha": [24], "natural_water_ha": [11, 12, 13, 14]}
+_mbw_cache: dict = {}
+
+
+def mapbiomas_water(basin, key):
+    """Hectareas por ano de agua artificial, pozas mineras y agua natural (MapBiomas Agua, 1985-2024)."""
+    ck = id(basin)
+    if ck not in _mbw_cache:
+        img = ee.Image(MB_WATER)
+        codes = sum(WATER_TYPES.values(), [])
+        groups = sum(([i] * len(v) for i, v in enumerate(WATER_TYPES.values())), [])
+        rows = []
+        for y in range(1985, 2025):
+            cls = img.select(f"classification_{y}").remap(codes, groups, -1)
+            g = retry(lambda: HA().addBands(cls).updateMask(cls.gte(0))
+                      .reduceRegion(ee.Reducer.sum().group(1, "k"), basin, S(30), maxPixels=1e11, tileScale=4)
+                      .get("groups").getInfo())
+            row = {"year": y, **{k: 0.0 for k in WATER_TYPES}}
+            for x in g:
+                row[list(WATER_TYPES)[x["k"]]] = x["sum"]
+            rows.append(row)
+        _mbw_cache.clear()
+        _mbw_cache[ck] = pd.DataFrame(rows)
+    return _mbw_cache[ck][["year", key]].rename(columns={key: "value"})
+
+
 SUSPECTS = {
     "forest_loss_ha": forest_loss,
     "burned_ha": burned,
@@ -349,7 +378,11 @@ SUSPECTS = {
     "agri_ha": lambda b: mapbiomas(b, "agri_ha"),
     "night_lights": night_lights,
     "population": population,
+    "artificial_water_ha": lambda b: mapbiomas_water(b, "artificial_water_ha"),
+    "mining_water_ha": lambda b: mapbiomas_water(b, "mining_water_ha"),
 }
+# no es sospechoso: agua natural de toda el area, para el grafico de tendencias opuestas
+CONTEXT_SERIES = {"natural_water_ha": lambda b: mapbiomas_water(b, "natural_water_ha")}
 FLOW_SUSPECTS = {"forest_loss_ha", "burned_ha"}
 
 

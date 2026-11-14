@@ -319,6 +319,19 @@
     "together_with": []
    },
    {
+    "suspect": "artificial_water_ha@cuenca",
+    "label": "Represas y reservorios (cuenca)",
+    "onset": 1999,
+    "rho": -0.14878048780487807,
+    "p": 0.3595378575498264,
+    "r2": 0.022135633551457472,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0221356335514575,
+    "together_with": []
+   },
+   {
     "suspect": "population@cuenca",
     "label": "Poblacion (cuenca)",
     "onset": 2005,
@@ -332,6 +345,19 @@
     "together_with": []
    },
    {
+    "suspect": "mining_water_ha@cuenca",
+    "label": "Pozas mineras (cuenca)",
+    "onset": 2005,
+    "rho": -0.11651031894934337,
+    "p": 0.47402000864292154,
+    "r2": 0.01357465442167772,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0135746544216777,
+    "together_with": []
+   },
+   {
     "suspect": "burned_ha@cuenca",
     "label": "Incendios (cuenca)",
     "onset": 2001,
@@ -342,6 +368,19 @@
     "rising": true,
     "evidence": "debil",
     "score": 1.008942262147729,
+    "together_with": []
+   },
+   {
+    "suspect": "mining_water_ha@cerca",
+    "label": "Pozas mineras (cerca)",
+    "onset": 2005,
+    "rho": -0.06870661545622433,
+    "p": 0.6735666916846438,
+    "r2": 0.004720599007449484,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0047205990074495,
     "together_with": []
    },
    {
@@ -368,6 +407,19 @@
     "rising": true,
     "evidence": "debil",
     "score": 1.0003915294315993,
+    "together_with": []
+   },
+   {
+    "suspect": "artificial_water_ha@cerca",
+    "label": "Represas y reservorios (cerca)",
+    "onset": 2014,
+    "rho": 0.2953095684803002,
+    "p": 0.06431698476006845,
+    "r2": 0.08720774123602112,
+    "precedes": false,
+    "rising": false,
+    "evidence": "debil",
+    "score": 0.08720774123602112,
     "together_with": []
    },
    {
@@ -657,7 +709,7 @@
    "coincidencia": {
     "pass": false,
     "detail": "No se detecta un quiebre claro en el residuo.",
-    "p": 0.2038886477801201
+    "p": 0.175038505923226
    }
   },
   "climate_share": 1.230318490829175,
@@ -678,6 +730,32 @@
   },
   "suspects": [
    {
+    "suspect": "artificial_water_ha@cerca",
+    "label": "Represas y reservorios (cerca)",
+    "onset": 2005,
+    "rho": 0.2187617260787993,
+    "p": 0.175038505923226,
+    "r2": 0.04785669279697562,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0478566927969757,
+    "together_with": []
+   },
+   {
+    "suspect": "artificial_water_ha@cuenca",
+    "label": "Represas y reservorios (cuenca)",
+    "onset": 2006,
+    "rho": 0.20656660412757977,
+    "p": 0.20094646380641426,
+    "r2": 0.04266976194080026,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0426697619408003,
+    "together_with": []
+   },
+   {
     "suspect": "burned_ha@cuenca",
     "label": "Incendios (cuenca)",
     "onset": 2001,
@@ -688,6 +766,19 @@
     "rising": true,
     "evidence": "debil",
     "score": 1.0421289103062772,
+    "together_with": []
+   },
+   {
+    "suspect": "mining_water_ha@cerca",
+    "label": "Pozas mineras (cerca)",
+    "onset": 2005,
+    "rho": 0.1886120221815398,
+    "p": 0.24379308731918004,
+    "r2": 0.03557449491140966,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0355744949114096,
     "together_with": []
    },
    {
@@ -753,6 +844,19 @@
     "rising": true,
     "evidence": "debil",
     "score": 1.0054055823802723,
+    "together_with": []
+   },
+   {
+    "suspect": "mining_water_ha@cuenca",
+    "label": "Pozas mineras (cuenca)",
+    "onset": 2005,
+    "rho": 0.06941838649155724,
+    "p": 0.6703755932953979,
+    "r2": 0.004818912383091217,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0048189123830913,
     "together_with": []
    },
    {
@@ -1236,6 +1340,19 @@
     "together_with": []
    },
    {
+    "suspect": "artificial_water_ha@cuenca",
+    "label": "Represas y reservorios (cuenca)",
+    "onset": 2005,
+    "rho": -0.45009380863039405,
+    "p": 0.0035668950101003516,
+    "r2": 0.2025844365674138,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.2025844365674139,
+    "together_with": []
+   },
+   {
     "suspect": "pasture_ha@cerca",
     "label": "Ganaderia (cerca)",
     "onset": 2009,
@@ -1272,6 +1389,19 @@
     "rising": true,
     "evidence": "debil",
     "score": 1.0892160220668796,
+    "together_with": []
+   },
+   {
+    "suspect": "artificial_water_ha@cerca",
+    "label": "Represas y reservorios (cerca)",
+    "onset": 2005,
+    "rho": -0.27467166979362106,
+    "p": 0.08629841120195636,
+    "r2": 0.075444526187216,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.075444526187216,
     "together_with": []
    },
    {
@@ -1337,6 +1467,19 @@
     "rising": false,
     "evidence": "debil",
     "score": 0.0358366920225704,
+    "together_with": []
+   },
+   {
+    "suspect": "mining_water_ha@cuenca",
+    "label": "Pozas mineras (cuenca)",
+    "onset": 2023,
+    "rho": -0.13513875072273043,
+    "p": 0.4057397732079531,
+    "r2": 0.018262481946900274,
+    "precedes": false,
+    "rising": false,
+    "evidence": "debil",
+    "score": 0.018262481946900274,
     "together_with": []
    }
   ],
@@ -1583,6 +1726,23 @@
     "together_with": []
    },
    {
+    "suspect": "mining_water_ha@cuenca",
+    "label": "Pozas mineras (cuenca)",
+    "onset": 2009,
+    "rho": -0.5086303939962477,
+    "p": 0.0008045993852969937,
+    "r2": 0.25870487769677813,
+    "precedes": true,
+    "rising": true,
+    "evidence": "media",
+    "score": 2.258704877696778,
+    "together_with": [
+     "Poblacion (cerca)",
+     "Crecimiento urbano (cuenca)",
+     "Mineria (cuenca)"
+    ]
+   },
+   {
     "suspect": "population@cerca",
     "label": "Poblacion (cerca)",
     "onset": 2007,
@@ -1594,6 +1754,7 @@
     "evidence": "media",
     "score": 2.2466120485695127,
     "together_with": [
+     "Pozas mineras (cuenca)",
      "Crecimiento urbano (cuenca)",
      "Mineria (cuenca)"
     ]
@@ -1610,6 +1771,7 @@
     "evidence": "media",
     "score": 2.234510522073763,
     "together_with": [
+     "Pozas mineras (cuenca)",
      "Poblacion (cerca)",
      "Mineria (cuenca)"
     ]
@@ -1626,6 +1788,7 @@
     "evidence": "media",
     "score": 2.145970172799441,
     "together_with": [
+     "Pozas mineras (cuenca)",
      "Poblacion (cerca)",
      "Crecimiento urbano (cuenca)"
     ]
@@ -1696,6 +1859,19 @@
     "together_with": []
    },
    {
+    "suspect": "artificial_water_ha@cuenca",
+    "label": "Represas y reservorios (cuenca)",
+    "onset": 1999,
+    "rho": -0.3422138836772984,
+    "p": 0.030660430029486478,
+    "r2": 0.1171103421814995,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.1171103421814994,
+    "together_with": []
+   },
+   {
     "suspect": "dry_crop_ha@cerca",
     "label": "Agricultura con riego (cerca)",
     "onset": 2002,
@@ -1719,6 +1895,19 @@
     "rising": true,
     "evidence": "debil",
     "score": 1.0006133289215704,
+    "together_with": []
+   },
+   {
+    "suspect": "artificial_water_ha@cerca",
+    "label": "Represas y reservorios (cerca)",
+    "onset": 2009,
+    "rho": 0.46684505727417247,
+    "p": 0.0023913284666866224,
+    "r2": 0.21794430750132537,
+    "precedes": false,
+    "rising": false,
+    "evidence": "debil",
+    "score": 0.21794430750132537,
     "together_with": []
    },
    {
@@ -2273,6 +2462,22 @@
     ]
    },
    {
+    "suspect": "artificial_water_ha@cuenca",
+    "label": "Represas y reservorios (cuenca)",
+    "onset": 2005,
+    "rho": -0.804127579737336,
+    "p": 4.117972427636464e-10,
+    "r2": 0.6466211644942256,
+    "precedes": false,
+    "rising": true,
+    "evidence": "media",
+    "score": 2.6466211644942255,
+    "together_with": [
+     "Ganaderia (cuenca)",
+     "Crecimiento urbano (cuenca)"
+    ]
+   },
+   {
     "suspect": "pasture_ha@cuenca",
     "label": "Ganaderia (cuenca)",
     "onset": 2006,
@@ -2284,6 +2489,7 @@
     "evidence": "media",
     "score": 2.517881382379608,
     "together_with": [
+     "Represas y reservorios (cuenca)",
      "Crecimiento urbano (cuenca)",
      "Poblacion (cuenca)"
     ]
@@ -2316,6 +2522,7 @@
     "evidence": "media",
     "score": 2.499829747858816,
     "together_with": [
+     "Represas y reservorios (cuenca)",
      "Ganaderia (cuenca)",
      "Poblacion (cuenca)"
     ]
@@ -2418,6 +2625,19 @@
     "rising": false,
     "evidence": "debil",
     "score": 0.01700259425743342,
+    "together_with": []
+   },
+   {
+    "suspect": "artificial_water_ha@cerca",
+    "label": "Represas y reservorios (cerca)",
+    "onset": 1994,
+    "rho": -0.1083393524824886,
+    "p": 0.5057732642145664,
+    "r2": 0.01173741529632491,
+    "precedes": false,
+    "rising": false,
+    "evidence": "debil",
+    "score": 0.01173741529632491,
     "together_with": []
    }
   ],
