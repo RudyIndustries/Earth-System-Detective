@@ -1,4 +1,4 @@
-# Uma - detective de huella humana en el agua de Bolivia
+# Detector de huella humana en el agua de Bolivia
 
 NASA Space Apps 2026, reto *Be an Earth System Trend Detective*.
 Separa cuánto de la pérdida de un cuerpo de agua explica el clima (sequía, El Niño) y cuánto no,
@@ -36,7 +36,7 @@ python -m venv .venv
 
 ## Datos de NASA
 
-| Uso en Uma | Dataset NASA | Acceso | Estado |
+| Uso en el detector | Dataset NASA | Acceso | Estado |
 |---|---|---|---|
 | Lluvia y temperatura por laguna, 1985-2024 | NASA POWER (PRECTOTCORR, T2M de MERRA-2) | API sin clave: `python -m uma.nasa_power` | Extraído en `data/real/nasa_power.csv` |
 | Superficie de agua, 1985-2024 | Landsat 5/7/8/9 C2 L2 (NASA/USGS), MNDWI en época seca | Earth Engine `LANDSAT/L*0*/C02/T1_L2` | Requiere proyecto GEE |
@@ -68,7 +68,7 @@ Todos los IDs de Earth Engine se verificaron en el catálogo público el 2026-11
 - [OPERA DSWx](https://www.earthdata.nasa.gov/data/projects/opera): agua superficial casi en tiempo real (Landsat y Sentinel, desde 2023).
 - [HLS](https://www.earthdata.nasa.gov/data/projects/hls): Landsat + Sentinel-2 armonizados, una imagen cada 2-3 días.
 
-**Datasets que usa Uma (ficha en el catálogo de Earth Engine)**
+**Datasets que usa el detector (ficha en el catálogo de Earth Engine)**
 
 | Uso | Dataset | Enlace |
 |---|---|---|
@@ -160,7 +160,7 @@ Limitación: prueba coincidencia y consistencia, no causalidad estricta.
 
 MapBiomas Agua Bolivia (colección 4, 1985-2025) clasifica cada cuerpo de agua. Los códigos se dedujeron en sitios
 conocidos: 11 natural, 22 represa o reservorio (Misicuni), 23 otra agua artificial (estanques), 24 poza minera
-(Tipuani). Uma usa `artificial_water_ha` (21-23) y `mining_water_ha` (24) como sospechosos, cerca y en la cuenca,
+(Tipuani). El detector usa `artificial_water_ha` (21-23) y `mining_water_ha` (24) como sospechosos, cerca y en la cuenca,
 y muestra en la tarjeta el agua natural contra la artificial.
 
 ## Barrido nacional

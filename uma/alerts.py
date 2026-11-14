@@ -81,7 +81,7 @@ def check(body: dict, end: dt.date) -> dict:
 
 def message(rows: list[dict], end: dt.date) -> str:
     al = [r for r in rows if r["alerta"]]
-    lines = [f"Uma - vigilancia semanal de incendios (NASA FIRMS), semana al {end.isoformat()}"]
+    lines = [f"Detector de huella humana - vigilancia semanal de incendios (NASA FIRMS), semana al {end.isoformat()}"]
     if not al:
         lines.append("Sin alertas: los focos de calor estan dentro de lo normal en las cuencas vigiladas.")
     for r in al:

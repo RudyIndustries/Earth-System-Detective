@@ -1,4 +1,4 @@
-"""Uma - interfaz. Lee los resultados del motor (data/real) y del barrido nacional (data/national).
+"""Detector de huella humana - interfaz. Lee los resultados del motor (data/real) y del barrido nacional (data/national).
 
   streamlit run app/app.py
 Vistas: mapa de alertas, monitoreo (tabla), ficha de un cuerpo de agua y vigilancia semanal de incendios.
@@ -52,7 +52,7 @@ def hexc(rgb):
     return "#%02x%02x%02x" % tuple(rgb[:3])
 
 
-st.set_page_config(page_title="Uma", layout="wide")
+st.set_page_config(page_title="Detector de huella humana", layout="wide")
 st.markdown("""
 <style>
 .block-container {padding-top: 3.2rem; padding-bottom: 1rem; max-width: 100%;}
@@ -69,7 +69,7 @@ st.markdown("""
 .legend {display:flex; flex-wrap:wrap; gap:14px; align-items:center; font-size:1rem; margin:6px 0 2px 0;}
 .legend i {display:inline-block; width:18px; height:18px; border-radius:50%; margin-right:6px; vertical-align:-3px;
            box-shadow:0 0 8px currentColor;}
-.title {font-size:2rem; font-weight:900; margin:0;}
+.title {font-size:1.35rem; font-weight:900; margin:0; line-height:1.2;}
 .sub {opacity:.75; margin-top:-4px;}
 </style>""", unsafe_allow_html=True)
 
@@ -149,8 +149,8 @@ st.session_state.setdefault("view", VIEWS[0])
 st.session_state.setdefault("sel", None)
 
 with st.sidebar:
-    st.markdown(f"<div class='title h'>{ic.svg('droplets', '#00f5ff', 32, 2.4)}Uma</div>"
-                "<div class='sub'>Detective de huella humana en el agua de Bolivia</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='title h'>{ic.svg('droplets', '#00f5ff', 32, 2.4)}Detector de huella humana</div>"
+                "<div class='sub'>Agua de Bolivia: clima natural o accion humana</div>", unsafe_allow_html=True)
     view = st.radio("Vista", VIEWS, key="view", label_visibility="collapsed")
     st.divider()
     show_ctrl = st.toggle("Mostrar gemelas de control", value=False)
@@ -602,6 +602,6 @@ def view_detail():
 
 {VIEWS[0]: view_map, VIEWS[1]: view_monitor, VIEWS[2]: view_detail, VIEWS[3]: view_watch}[view]()
 
-st.caption("Uma prueba coincidencia y consistencia, no causalidad estricta. Datos: Landsat 5/7/8/9 (NASA/USGS), "
+st.caption("El detector prueba coincidencia y consistencia, no causalidad estricta. Datos: Landsat 5/7/8/9 (NASA/USGS), "
            "NASA POWER, NASA FIRMS, MODIS MCD64A1, GRACE, NASADEM, NOAA ONI, JRC Global Surface Water (validacion), "
            "MapBiomas Bolivia y MapBiomas Agua, Hansen GFC 2025, DMSP/VIIRS, WorldPop, HydroBASINS, OpenStreetMap.")

@@ -1,4 +1,4 @@
-"""Mapa 3D (relieve real) y comparador antes/despues para Uma."""
+"""Mapa 3D (relieve real) y comparador antes/despues del Detector de huella humana."""
 from __future__ import annotations
 
 import base64
