@@ -6,7 +6,7 @@ import { FlyToInterpolator, type Layer, type Position } from '@deck.gl/core';
 import { TerrainLayer } from '@deck.gl/geo-layers';
 import { ColumnLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers';
 import { ArrowUpRight, Layers, LocateFixed } from 'lucide-react';
-import { api, signed, states, type BodyDetail, type Place, type Snapshot, type State, type WaterBody } from './data';
+import { api, firstSuspect, signed, states, visibleStates, type BodyDetail, type Method, type Place, type Snapshot, type State, type WaterBody } from './data';
 import { Status } from './ui';
 
 const esri = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -25,8 +25,8 @@ const heightKey = (point: { lat: number; lon: number }) => `${point.lat},${point
 const estimatedElevation = ({ lat, lon }: { lat: number; lon: number }) => lon < -65.6 && lat < -14.5 ? 4100 : 650;
 const rgb = (state: State): [number, number, number] => [...states[state].rgb];
 
-export default function MapView({ snapshot, bodies, selected, select, openDetails }: {
-  snapshot: Snapshot; bodies: WaterBody[]; selected?: WaterBody;
+export default function MapView({ snapshot, method, bodies, selected, select, openDetails }: {
+  snapshot: Snapshot; method: Method; bodies: WaterBody[]; selected?: WaterBody;
   select: (id: string | null) => void; openDetails: (id: string) => void;
 }) {
   const [mode, setMode] = useState<Mode>('esri');
@@ -123,7 +123,10 @@ export default function MapView({ snapshot, bodies, selected, select, openDetail
     total[body.state] = (total[body.state] ?? 0) + 1;
     return total;
   }, {});
-  const mapStates = Object.keys(states) as State[];
+  const mapStates = visibleStates(method, [...bodies, ...(national ? snapshot.national : [])]);
+  const priority = [...bodies].sort((a, b) => mapStates.indexOf(a.state) - mapStates.indexOf(b.state) ||
+    a.trend.change_pct - b.trend.change_pct);
+  const suspect = selected && firstSuspect(selected);
 
   return <>
     <div className="status-grid">{mapStates.map((state) => <article key={state} className="panel status-card">
@@ -143,7 +146,7 @@ export default function MapView({ snapshot, bodies, selected, select, openDetail
           </select></label>
           <label className="check-inline"><input type="checkbox" checked={fires} onChange={(event) => setFires(event.target.checked)} /> Focos FIRMS (7 días)</label>
         </>}
-        {!!snapshot.national.length && <label className="check-inline"><input type="checkbox" checked={national} onChange={(event) => setNational(event.target.checked)} /> Barrido nacional</label>}
+        {!!snapshot.national.length && <label className="check-inline"><input type="checkbox" checked={national} onChange={(event) => setNational(event.target.checked)} /> Barrido nacional ({snapshot.national.length})</label>}
         {!!snapshot.artificial?.points.length && <label className="check-inline"><input type="checkbox" checked={artificial} onChange={(event) => setArtificial(event.target.checked)} /> Agua artificial</label>}
         <button className="map-reset" type="button" disabled={!selected} onClick={() => select(null)}><LocateFixed size={17} aria-hidden="true" /> Vista general</button>
       </div>
@@ -159,12 +162,23 @@ export default function MapView({ snapshot, bodies, selected, select, openDetail
       <div className="map-footer"><span>Altura de las columnas según el porcentaje de agua perdida.</span>
         {!snapshot.liveMap && <span>Capas en vivo disponibles con una cuenta de Earth Engine.</span>}</div>
     </section>
-    <section className="body-picker panel" aria-label="Explorar cuerpos de agua">
+    <div className="overview-grid map-summary">
+    <section className="panel overview-panel" aria-label="Explorar cuerpos de agua">
+      <h2>Explorar un cuerpo de agua</h2>
       <label>Cuerpo de agua<select value={selected?.body_id ?? ''} onChange={(event) => select(event.target.value || null)}>
         <option value="">Seleccionar cuerpo de agua</option>
         {bodies.map((body) => <option key={body.body_id} value={body.body_id}>{body.name}</option>)}</select></label>
-      {selected && <><Status state={selected.state} /><strong>{signed(selected.trend.change_pct)}%</strong>
-        <button type="button" className="primary" onClick={() => openDetails(selected.body_id)}>Abrir ficha <ArrowUpRight size={17} aria-hidden="true" /></button></>}
+      {selected && <div className="map-selection"><Status state={selected.state} /><strong>{signed(selected.trend.change_pct)}%</strong>
+        {suspect && <p className="muted">{suspect.label} · {suspect.evidence}</p>}
+        {!!selected.why?.length && <ul className="muted">{selected.why.slice(0, 3).map((reason) => <li key={reason}>{reason}</li>)}</ul>}
+        <button type="button" className="primary" onClick={() => openDetails(selected.body_id)}>Abrir ficha <ArrowUpRight size={17} aria-hidden="true" /></button>
+      </div>}
     </section>
+    <section className="panel overview-panel"><h2>Casos para revisar</h2>
+      <div className="priority-list">{priority.map((body) => <button type="button" key={body.body_id} onClick={() => select(body.body_id)}>
+        <span>{body.name}</span><strong>{signed(body.trend.change_pct)}%</strong>
+      </button>)}</div>
+    </section>
+    </div>
   </>;
 }

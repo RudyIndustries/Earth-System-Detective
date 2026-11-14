@@ -1,12 +1,26 @@
 export const states = {
-  'Huella humana': { label: 'Huella humana', rgb: [255, 61, 102], action: 'Prevenir. Controlar la actividad sospechosa, proteger la cuenca y restaurar.' },
-  'Alerta temprana': { label: 'Alerta temprana', rgb: [211, 98, 244], action: 'Actuar temprano para proteger la cuenca.' },
-  'Sin explicar': { label: 'Sin explicar', rgb: [255, 214, 71], action: 'Revisar la pérdida de agua. La evidencia disponible aún es insuficiente para atribuirla.' },
-  'Causa climatica': { label: 'Causa climática', rgb: [255, 151, 52], action: 'Adaptarse con cosecha de agua, reservorios y planes de sequía.' },
-  Intacto: { label: 'Intacto', rgb: [66, 226, 157], action: 'Mantener el seguimiento.' },
+  'Huella humana': { label: 'Huella humana', rgb: [255, 122, 122], action: 'Prevenir. Controlar la actividad sospechosa, proteger la cuenca y restaurar.' },
+  'Alerta temprana': { label: 'Alerta temprana', rgb: [196, 161, 255], action: 'Actuar temprano para proteger la cuenca.' },
+  Incalculable: { label: 'Incalculable', rgb: [255, 209, 102], action: 'Revisar qué datos o pruebas faltan para calcular la causa de la pérdida.' },
+  'Sin explicar': { label: 'Sin explicar', rgb: [255, 209, 102], action: 'Revisar qué datos o pruebas faltan para calcular la causa de la pérdida.' },
+  'Causa climatica': { label: 'Causa climática', rgb: [255, 162, 107], action: 'Adaptarse con cosecha de agua, reservorios y planes de sequía.' },
+  Intacto: { label: 'Intacto', rgb: [94, 230, 168], action: 'Mantener el seguimiento.' },
+  'Evidencia reforzada de intervencion': { label: 'Evidencia reforzada de intervención', rgb: [255, 122, 122], action: 'Revisar la intervención documentada y sus supuestos.' },
+  'Indicios de intervencion humana': { label: 'Indicios de intervención humana', rgb: [255, 162, 107], action: 'Revisar las señales y buscar evidencia independiente de la actividad.' },
+  'Perdida no explicada': { label: 'Pérdida no explicada', rgb: [255, 209, 102], action: 'Investigar la hidrología, la calidad de los datos y las actividades en la cuenca.' },
+  'Evidencia insuficiente': { label: 'Evidencia insuficiente', rgb: [189, 195, 211], action: 'Revisar la calidad, el periodo base y la validación antes de interpretar causas.' },
+  'Sin perdida anomala detectada': { label: 'Sin pérdida anómala detectada', rgb: [112, 199, 255], action: 'Mantener el seguimiento de la superficie observada y de la presión en la cuenca.' },
 } as const;
 
 export type State = keyof typeof states;
+export type Method = 'balance' | 'conservative';
+export const methodNames: Record<Method, string> = { balance: 'Balance hídrico', conservative: 'Modelo conservador' };
+export const methodStates: Record<Method, State[]> = {
+  balance: ['Huella humana', 'Alerta temprana', 'Incalculable', 'Causa climatica', 'Intacto'],
+  conservative: ['Evidencia reforzada de intervencion', 'Indicios de intervencion humana', 'Perdida no explicada',
+    'Evidencia insuficiente', 'Sin perdida anomala detectada'],
+};
+export const humanEvidenceStates: State[] = ['Huella humana', 'Evidencia reforzada de intervencion', 'Indicios de intervencion humana'];
 export type Area = 'subcuenca_local' | 'cuenca_aporte';
 export const areaNames: Record<Area, string> = { subcuenca_local: 'Cerca de la laguna', cuenca_aporte: 'Toda la cuenca de aporte' };
 export const reviewOutcomes = {
@@ -22,7 +36,12 @@ export interface Suspect {
   evidence: string;
   onset: number | null;
   precedes: boolean;
-  r2: number;
+  r2: number | null;
+  indirect?: boolean;
+  eligible?: boolean;
+  data_provenance?: string;
+  p_adjusted?: number | null;
+  relation_beyond_trend?: boolean;
   together_with?: string[];
 }
 
@@ -38,17 +57,32 @@ export interface WaterBody {
   years: number[];
   observed: (number | null)[];
   expected: (number | null)[];
+  expected_lower?: (number | null)[];
+  expected_upper?: (number | null)[];
+  interval_level?: number;
   oni: number[];
   baseline_end: number;
   baseline_mean_ha: number;
-  climate_r2: number;
+  climate_r2: number | null;
+  climate_reliable?: boolean;
+  climate_fit?: Record<string, number | null>;
+  why?: string[];
   climate_share?: number | null;
   data_quality?: { level: string; r_jrc?: number | null; interpolated_years?: number[] };
   n_pass: number;
   trend: { change_pct: number; sen_ha_per_year: number; p: number; p_holm: number };
-  tests: Record<string, { pass: boolean; detail: string }>;
+  tests: Record<string, { pass: boolean | null; evaluated?: boolean; detail: string }>;
   decomposition_ha: Record<string, number>;
-  backtest: unknown;
+  backtest?: { coverage?: number | null; mae_ha?: number | null; mae_pct?: number | null };
+  method_version?: string;
+  selected_model?: string;
+  model_comparison?: {
+    method: string; selected: boolean; cv_n: number; cv_mae_ha: number | null; mae_ha: number | null;
+  }[];
+  model_validation?: { reliable: boolean; base_n: number; cv_n: number; interval_method: string; climate_attribution_eligible: boolean };
+  quality?: { eligible: boolean; base_observed_n: number; imputed_water_n: number; reasons: string[] };
+  control_validation?: { eligible: boolean; reviewed?: boolean; reasons: string[] };
+  independent_evidence?: { source: string; suspect: string; year: number }[];
   suspects: Suspect[];
   ha?: number;
 }
@@ -70,6 +104,12 @@ export interface BodyDetail {
   context: { years: [number, number]; window_km: number; changes_ha: Record<string, number>;
     legend: Record<string, { label: string; color: string }> } | null;
   water: { area: Area; year: number; suspect: string; value: number }[];
+  verification: {
+    r_agua_landsat_mapbiomas: number | null; r_lluvia_power_chirps: number | null;
+    lluvia_media_power_mm: number | null; lluvia_media_chirps_mm: number | null;
+    agua_landsat: Record<string, number | null>; agua_mapbiomas: Record<string, number | null>;
+  } | null;
+  river: { agua_cauce_ha: Record<string, number>; deficit_pct: Record<string, number> } | null;
 }
 
 export interface Snapshot {
@@ -78,6 +118,7 @@ export interface Snapshot {
   artificial: { year: number; points: { tipo: string; ha: number; lat: number; lon: number }[] } | null;
   sample: boolean;
   liveMap: boolean;
+  conservativeAvailable: boolean;
 }
 
 export type Row = Record<string, string | number | null>;
@@ -109,6 +150,12 @@ export const number = (value: number, digits = 0) => new Intl.NumberFormat('es-B
 }).format(value);
 export const signed = (value: number, digits = 0) => `${value > 0 ? '+' : ''}${number(value, digits)}`;
 export const imageUrl = (folder: 'img' | 'context', filename: string) => `/api/images/${folder}/${filename}.png`;
+export const modelUrl = (path: string, method: Method) => `${path}?method=${method}`;
+export const firstSuspect = (body: WaterBody) => body.suspects?.find((suspect) => !suspect.indirect);
+
+export function visibleStates(method: Method, bodies: WaterBody[]) {
+  return [...new Set([...methodStates[method], ...bodies.map((body) => body.state)])];
+}
 
 export async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`/api/${path}`, { cache: 'no-store', ...options });

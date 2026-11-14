@@ -2,8 +2,9 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { ArrowLeft, CircleCheck, CircleDashed, Download, ExternalLink } from 'lucide-react';
-import { api, imageUrl, number, reviewOutcomes, signed, states, type Audit, type BodyDetail, type WaterBody } from './data';
-import { ClimateCharts, WaterCharts } from './charts';
+import { api, firstSuspect, imageUrl, modelUrl, number, reviewOutcomes, signed, states,
+  type Audit, type BodyDetail, type Method, type WaterBody } from './data';
+import { ClimateCharts, CrossChecks, WaterCharts } from './charts';
 import { DataTable, Status } from './ui';
 
 const tabs = ['Antes y después', 'Clima y causas', 'Agua natural vs. artificial', 'Pruebas y sospechosos', 'Alrededores', 'Auditoría'] as const;
@@ -20,18 +21,18 @@ const placeKinds: Record<string, string[]> = {
   mining_water_ha: ['Mina o cantera'], dry_crop_ha: ['Represa o canal'],
 };
 
-export function Details({ bodies, id, select, back }: {
-  bodies: WaterBody[]; id: string; select: (id: string) => void; back: () => void;
+export function Details({ bodies, id, method, select, back }: {
+  bodies: WaterBody[]; id: string; method: Method; select: (id: string) => void; back: () => void;
 }) {
   const [tab, setTab] = useState<(typeof tabs)[number]>(tabs[0]);
   const [loaded, setLoaded] = useState<{ id: string; detail?: BodyDetail; error?: string }>();
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     const request = new AbortController();
-    api<BodyDetail>(`bodies/${id}`, { signal: request.signal }).then((detail) => setLoaded({ id, detail }))
+    api<BodyDetail>(modelUrl(`bodies/${id}`, method), { signal: request.signal }).then((detail) => setLoaded({ id, detail }))
       .catch((error: Error) => { if (!request.signal.aborted) setLoaded({ id, error: error.message }); });
     return () => request.abort();
-  }, [id, attempt]);
+  }, [id, method, attempt]);
   const current = loaded?.id === id ? loaded : undefined;
   const detail = current?.detail;
   const body = detail?.result;
@@ -53,8 +54,8 @@ export function Details({ bodies, id, select, back }: {
         <div className="panel"><span>Cambio desde el periodo base</span><strong>{signed(body.trend.change_pct)}%</strong></div>
         <div className="panel" title={`Mann-Kendall p = ${number(body.trend.p, 3)} · Ajustado p = ${number(body.trend.p_holm, 3)}`}>
           <span>Tendencia de Sen</span><strong>{signed(body.trend.sen_ha_per_year, 1)} ha/año</strong></div>
-        <div className="panel"><span>Confianza</span><strong>{body.confidence}</strong><small>{body.n_pass} de 3 pruebas</small></div>
-        <div className="panel"><span>Sospechoso principal</span><strong>{body.suspects[0]?.label ?? '—'}</strong></div>
+        <div className="panel"><span>{body.method_version ? 'Nivel de evidencia' : 'Confianza'}</span><strong>{body.confidence}</strong><small>{body.n_pass} de 3 pruebas favorables</small></div>
+        <div className="panel"><span>{body.method_version ? 'Presión priorizada' : 'Sospechoso principal'}</span><strong>{firstSuspect(body)?.label ?? '—'}</strong></div>
       </div>
       <div className="notice"><div>{states[body.state].action}
         {body.climate_share != null && <p>El cambio atribuible al clima equivale al {number(100 * Math.min(body.climate_share, 9.99))} % de la pérdida entre el periodo base y los últimos cinco años.</p>}
@@ -63,17 +64,25 @@ export function Details({ bodies, id, select, back }: {
         Calidad de datos {quality.level}. Correlación entre Landsat y JRC {number(quality.r_jrc, 2)}.
         {quality.interpolated_years?.length ? ` Años interpolados: ${quality.interpolated_years.join(', ')}.` : ''}
       </p>}
+      {!!body.why?.length && <div className="notice reasons"><div>
+        <strong>{body.state === 'Incalculable' ? 'Por qué es incalculable' : 'Motivos del diagnóstico'}</strong>
+        <ul>{body.why.map((reason) => <li key={reason}>{reason}</li>)}</ul>
+      </div></div>}
+      {body.quality && <p className={body.quality.eligible && body.model_validation?.reliable ? 'muted' : 'notice warning'}>
+        Modelo seleccionado: {body.selected_model}. {body.quality.base_observed_n} años de agua observada en el periodo base,
+        {body.quality.imputed_water_n} años imputados excluidos. {body.quality.reasons.join(' ')}
+      </p>}
       <section className="panel detail-panel" aria-label="Datos del cuerpo de agua">
         <nav aria-label="Secciones de la ficha" className="tabs">
           {tabs.map((name) => <button type="button" key={name} aria-pressed={tab === name} onClick={() => setTab(name)}>{name}</button>)}
         </nav>
         <div className="tab-content">
           {tab === 'Antes y después' && <Compare key={id} detail={detail} />}
-          {tab === 'Clima y causas' && <ClimateCharts body={body} />}
+          {tab === 'Clima y causas' && <><ClimateCharts body={body} /><CrossChecks detail={detail} /></>}
           {tab === 'Agua natural vs. artificial' && <WaterCharts key={id} detail={detail} />}
           {tab === 'Pruebas y sospechosos' && <Evidence body={body} />}
           {tab === 'Alrededores' && <Surroundings detail={detail} />}
-          {tab === 'Auditoría' && <AuditView key={id} body={body} />}
+          {tab === 'Auditoría' && <AuditView key={id} body={body} method={method} />}
         </div>
       </section>
     </>}
@@ -141,20 +150,28 @@ function Compare({ detail }: { detail: BodyDetail }) {
 function Evidence({ body }: { body: WaterBody }) {
   return <>
     <ul className="evidence">{Object.entries(body.tests).map(([key, test]) => <li key={key}>
-      {test.pass ? <CircleCheck className="passed" aria-label="Superada" /> : <CircleDashed className="muted" aria-label="Pendiente" />}
-      <div><strong>{testLabels[key] ?? key}</strong><p>{test.detail}</p></div>
+      {test.pass ? <CircleCheck className="passed" aria-label="Superada" /> : <CircleDashed className="muted" aria-label="Sin superar" />}
+      <div><strong>{testLabels[key] ?? key}{(test.pass == null || test.evaluated === false) && ' · No evaluable'}</strong><p>{test.detail}</p></div>
     </li>)}</ul>
     <DataTable rows={body.suspects.map((suspect) => ({
       Sospechoso: suspect.label, Evidencia: suspect.evidence, 'Empieza a crecer': suspect.onset,
-      'Antecede a la caída': suspect.precedes ? 'Sí' : 'No', 'R² con el residuo': number(suspect.r2, 2),
+      'Antecede a la caída': suspect.precedes ? 'Sí' : 'No', 'R² con el residuo': suspect.r2 == null ? '—' : number(suspect.r2, 2),
+      Tipo: suspect.indirect == null ? (suspect.data_provenance ?? '—') : suspect.indirect ? 'Indirecto' : 'Directo',
       'Inseparable de': suspect.together_with?.join(', ') || '—',
     }))} empty="Sin sospechosos registrados." />
+    {body.control_validation && <div className="proof-group"><h3>Elegibilidad de la gemela</h3>
+      <p>{body.control_validation.eligible ? 'Control elegible' : 'Control no elegible'}</p>
+      {!!body.control_validation.reasons.length && <ul>{body.control_validation.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>}
+    </div>}
+    {!!body.independent_evidence?.length && <div className="proof-group"><h3>Intervenciones documentadas</h3>
+      <DataTable rows={body.independent_evidence.map((entry) => ({ Actividad: entry.suspect, Año: entry.year, Fuente: entry.source }))} />
+    </div>}
   </>;
 }
 
 function Surroundings({ detail }: { detail: BodyDetail }) {
   const { context, places, result } = detail;
-  const top = result.suspects.filter((suspect) => suspect.evidence !== 'debil').slice(0, 2);
+  const top = result.suspects.filter((suspect) => suspect.evidence !== 'debil' && !suspect.indirect).slice(0, 2);
   return <>
     {(top.length ? top : result.suspects.slice(0, 1)).map((suspect) => {
       const key = suspect.suspect.split('@')[0];
@@ -175,7 +192,7 @@ function Surroundings({ detail }: { detail: BodyDetail }) {
   </>;
 }
 
-function AuditView({ body }: { body: WaterBody }) {
+function AuditView({ body, method }: { body: WaterBody; method: Method }) {
   const [audit, setAudit] = useState<Audit>();
   const [status, setStatus] = useState<{ message: string; error?: boolean }>();
   const [busy, setBusy] = useState(false);
@@ -183,18 +200,18 @@ function AuditView({ body }: { body: WaterBody }) {
   const path = `bodies/${body.body_id}`;
   useEffect(() => {
     const request = new AbortController();
-    api<Audit>(`${path}/audit`, { signal: request.signal }).then(setAudit).catch((error: Error) => {
+    api<Audit>(modelUrl(`${path}/audit`, method), { signal: request.signal }).then(setAudit).catch((error: Error) => {
       if (!request.signal.aborted) setStatus({ message: error.message, error: true });
     });
     return () => request.abort();
-  }, [path, refresh]);
+  }, [path, method, refresh]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     setBusy(true);
     try {
-      await api(`${path}/reviews`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      await api(modelUrl(`${path}/reviews`, method), { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(Object.fromEntries(new FormData(form))) });
       setStatus({ message: 'Revisión guardada en la auditoría.' });
       setRefresh((value) => value + 1);
@@ -223,10 +240,15 @@ function AuditView({ body }: { body: WaterBody }) {
       {!!audit.reviews.length && <><h3>Revisiones</h3><DataTable rows={audit.reviews} /></>}
     </> : <p className="muted">{audit ? 'Sin base de auditoría para estos datos.' : 'Cargando auditoría…'}</p>}
     {status && <p className={`notice ${status.error ? 'danger' : 'success'}`} role={status.error ? 'alert' : 'status'}>{status.message}</p>}
-    <details className="technical"><summary>Modo técnico</summary><p>R² del modelo climático ({body.baseline_end}) · {number(body.climate_r2, 2)}</p>
+    <details className="technical"><summary>Modo técnico</summary><p>R² del modelo ({body.baseline_end}) · {body.climate_r2 == null ? '—' : number(body.climate_r2, 2)}</p>
+      {body.climate_fit && <><h4>Ajuste del modelo climático</h4><pre>{JSON.stringify(body.climate_fit, null, 2)}</pre></>}
+      {body.model_comparison && <><h4>Comparación de modelos</h4><DataTable rows={body.model_comparison.map((model) => ({
+        Modelo: model.method, Seleccionado: model.selected ? 'Sí' : 'No',
+        'Validaciones internas': model.cv_n, 'MAE interno (ha)': model.cv_mae_ha, 'MAE posterior (ha)': model.mae_ha,
+      }))} /></>}
       <h4>Validación retrospectiva</h4><pre>{JSON.stringify(body.backtest, null, 2)}</pre>
       <h4>Pruebas</h4><pre>{JSON.stringify(body.tests, null, 2)}</pre>
     </details>
-    <a className="button-link" href="/api/results.json"><Download size={16} aria-hidden="true" /> Descargar resultados JSON</a>
+    <a className="button-link" href={modelUrl('/api/results.json', method)}><Download size={16} aria-hidden="true" /> Descargar resultados JSON</a>
   </>;
 }

@@ -1,8 +1,11 @@
 # Detector de huella humana en el agua de Bolivia
 
 NASA Space Apps 2026, reto *Be an Earth System Trend Detective*.
-Separa cuánto de la pérdida de un cuerpo de agua explica el clima (sequía, El Niño) y cuánto no,
-y audita qué actividad humana es la sospechosa.
+Compara la evolución del agua con referencias climáticas, detecta anomalías con incertidumbre
+y evalúa indicios de presión humana. No asigna automáticamente una causa a un residuo.
+
+La implementación conservadora y sus límites están documentados en [VALIDACION_MODELO.md](VALIDACION_MODELO.md).
+Los resultados actuales están en [data/real/validation/REPORT.md](data/real/validation/REPORT.md).
 
 ## Arranque del dashboard
 
@@ -173,6 +176,8 @@ artificial_water_ha`. `area` dice si se midió en la `cuenca_aporte` o en la `su
 
 ## Cómo decide el motor
 
+### Balance hídrico
+
 1. **Prueba 1, clima.** Modelo `agua ~ lluvia + lluvia(t-1) + temperatura + ONI` entrenado solo en el periodo base
    (por defecto hasta 2000). Pasa si el residuo cae de forma significativa (Mann-Kendall p < 0.05) y en más de 10%
    de la media base.
@@ -249,3 +254,19 @@ casi seca en 1994-1996. Como las dos fuentes de lluvia discrepan, `uma/climate_b
 
 Reglas de evidencia de los sospechosos: un sospechoso medido en hectáreas tiene que crecer al menos el 10% del agua
 perdida (si no, queda como débil), y "antecede la caída" si ya había crecido 1.5 veces alrededor del quiebre del agua.
+## Modelo conservador
+
+1. **Calidad y validación.** Excluye agua imputada del ajuste y compara climatología, OLS, Ridge y regresión con memoria residual AR(1), usando solo cortes dentro del período base. Si la calidad o la validación son insuficientes, lo comunica.
+2. **Anomalía.** Contrasta tendencia residual y efecto material, exige persistencia bajo una banda bootstrap aproximada y corrige los contrastes entre cuerpos de agua. Publica la cobertura posterior de las bandas.
+3. **Control.** Una gemela es candidata hasta documentar su elegibilidad independiente. Se revisan similitud previa, error y cobertura; si falla, su prueba no se habilita.
+4. **Presión.** Exige crecimiento, antecedencia y signo negativo en la asociación de cambios anuales, con corrección de Holm y contrastes temporales exploratorios.
+5. **Conclusión.** No basta con aprobar dos pruebas. Hay estados de evidencia insuficiente, pérdida no explicada e indicios; la evidencia reforzada exige documentación independiente revisada. La diferencia de tendencias no se reparte numéricamente como causa humana.
+
+La política está en `config/evidence_policy.json`; sus umbrales son provisionales y configurables. Las revisiones de controles y los eventos documentados comienzan vacíos: no se inventan confirmaciones. Los placebos en controles candidatos son exploratorios y no constituyen una tasa confirmada de falsos positivos. No hay métricas de clasificación humana contra etiquetas independientes disponibles.
+
+La evaluación posterior usa clima observado: es retrospectiva y condicional, no un pronóstico operativo de lluvia. Las bandas no se declaran calibradas. La documentación detalla qué datos y revisiones faltan para una atribución confirmatoria.
+En Next.js, selecciona **Modelo conservador** para ver los resultados, bandas, pruebas y auditoría de este método.
+El barrido nacional publicado corresponde al método de balance hídrico. Para generar nuevas corridas
+conservadoras con las entradas actuales, ejecuta `python run_engine.py data/real 2000 --conservative`.
+Se guardan en `data/real/validation/`, con su propio JSON, auditoría y tablas de validación.
+Consulta [la metodología conservadora y sus límites](VALIDACION_MODELO.md).

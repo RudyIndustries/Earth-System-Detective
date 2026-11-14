@@ -1,9 +1,13 @@
 import type { CSSProperties } from 'react';
-import { Activity, CloudSunRain, Footprints, ShieldCheck, Siren } from 'lucide-react';
+import { Activity, CircleHelp, CloudSunRain, Footprints, ShieldCheck, Siren } from 'lucide-react';
 import { states, type Row, type State } from './data';
 
-const icons = { 'Huella humana': Footprints, 'Alerta temprana': Siren, 'Sin explicar': Activity,
-  'Causa climatica': CloudSunRain, Intacto: ShieldCheck };
+const icons = {
+  'Huella humana': Footprints, 'Alerta temprana': Siren, Incalculable: CircleHelp, 'Sin explicar': CircleHelp,
+  'Causa climatica': CloudSunRain, Intacto: ShieldCheck, 'Evidencia insuficiente': CircleHelp,
+  'Evidencia reforzada de intervencion': ShieldCheck, 'Indicios de intervencion humana': Footprints,
+  'Perdida no explicada': Activity, 'Sin perdida anomala detectada': Activity,
+};
 
 export function Status({ state }: { state: State }) {
   const config = states[state];

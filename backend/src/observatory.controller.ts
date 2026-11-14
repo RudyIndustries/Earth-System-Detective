@@ -10,25 +10,27 @@ export class ObservatoryController {
   health() { return { status: 'ok' }; }
 
   @Get('dashboard')
-  dashboard() { return { ...this.observatory.dashboard(), liveMap: this.map.configured }; }
+  dashboard(@Query('method') method?: string) {
+    return { ...this.observatory.dashboard(method), liveMap: this.map.configured };
+  }
 
   @Get('bodies/:id')
-  detail(@Param('id') id: string) { return this.observatory.detail(id); }
+  detail(@Param('id') id: string, @Query('method') method?: string) { return this.observatory.detail(id, method); }
 
   @Get('bodies/:id/audit')
-  audit(@Param('id') id: string) { return this.observatory.history(id); }
+  audit(@Param('id') id: string, @Query('method') method?: string) { return this.observatory.history(id, method); }
 
   @Post('bodies/:id/reviews')
-  review(@Param('id') id: string, @Body() body: Record<string, unknown>) {
-    return this.observatory.review(id, body);
+  review(@Param('id') id: string, @Body() body: Record<string, unknown>, @Query('method') method?: string) {
+    return this.observatory.review(id, body, method);
   }
 
   @Get('weekly')
   weekly() { return this.observatory.weekly(); }
 
   @Get('results.json')
-  download() {
-    return new StreamableFile(this.observatory.download(), {
+  download(@Query('method') method?: string) {
+    return new StreamableFile(this.observatory.download(method), {
       type: 'application/json', disposition: 'attachment; filename="uma_results.json"',
     });
   }
