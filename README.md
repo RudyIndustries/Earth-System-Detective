@@ -4,6 +4,45 @@ NASA Space Apps 2026, reto *Be an Earth System Trend Detective*.
 Separa cuánto de la pérdida de un cuerpo de agua explica el clima (sequía, El Niño) y cuánto no,
 y audita qué actividad humana es la sospechosa.
 
+## Arranque del dashboard
+
+Usa Node.js 20.9 o posterior y npm. Desde la carpeta raíz instala las dependencias y compila el frontend:
+
+```bash
+npm ci
+npm run build
+```
+
+En una terminal inicia NestJS en el puerto 3001:
+
+```bash
+npm run start:dev
+```
+
+En otra terminal inicia Next.js y abre [localhost:3000](http://localhost:3000):
+
+```bash
+npm run start
+```
+
+Para editar el frontend con recarga automática, usa `npm run dev:frontend`. Los dos servidores arrancan con Node.js
+y NestJS carga los datos procesados que incluye el repositorio. Los scripts científicos de Python se ejecutan aparte
+para descargar nuevas series, recalcular los diagnósticos, generar el barrido y actualizar los reportes de incendios.
+
+### Configuración local
+
+- **NestJS** (`backend/`) sirve diagnósticos, series de agua, imágenes, vigilancia e historial y guarda las
+  revisiones en el archivo `uma.db` existente. Usa `data/real` si contiene resultados, con `data/sample` como respaldo.
+  Define `UMA_DATA` en `.env` para usar otra carpeta de datos. El barrido nacional y sus puntos de agua artificial
+  aparecen si se generan `data/national/results.json` y `data/national/agua_artificial.json`, respectivamente.
+- **Next.js** (`frontend/`) reenvía `/api` a NestJS. Si cambias el puerto del backend, configura
+  `BACKEND_URL=http://127.0.0.1:<puerto>` en `frontend/.env.local` y recompila Next.js.
+- **Mapa en vivo**. Copia `.env.example` a `.env` y configura `GOOGLE_APPLICATION_CREDENTIALS` con la ruta de un
+  archivo JSON de una cuenta de servicio con acceso a Earth Engine. También puedes usar `GEE_SERVICE_ACCOUNT_KEY`
+  con el contenido de ese JSON. `UMA_GEE_PROJECT` permite elegir otro proyecto. Con esta configuración aparecen los
+  modos Landsat y MapBiomas y la capa de incendios FIRMS. El mapa satelital de Esri y el relieve de AWS usan sus
+  servicios públicos.
+
 ## Estructura
 
 | Carpeta | Quién | Qué |
@@ -22,10 +61,12 @@ y audita qué actividad humana es la sospechosa.
 | `uma/audit.py` | P2 Modelo | Auditoría en SQLite (`data/real/uma.db`): corridas, veredictos, alertas, revisiones |
 | `uma/synthetic.py` | P2/P3 | Datos de prueba ficticios con el mismo formato |
 | `run_engine.py` | P2 | CSV → `results.json` + registro de auditoría |
-| `app/app.py`, `app/map3d.py` | P3 Interfaz | Streamlit: mapa 3D, alertas, tarjeta, antes/después, alrededores, historial |
+| `frontend/` | P3 Interfaz | Next.js: mapa 3D, alertas, ficha, antes/después, alrededores, historial |
+| `backend/` | API | NestJS: acceso a datos locales, imágenes, auditoría SQLite y capas de Earth Engine |
+| `app/app.py`, `app/map3d.py` | P3 Interfaz original | Dashboard Streamlit |
 | `gee/extraer_series.py` | P1 Datos | Cómo correr lo mismo desde Google Colab |
 
-## Arranque
+## Arranque de la interfaz original
 
 ```bash
 python -m venv .venv
@@ -106,7 +147,7 @@ Todos los IDs de Earth Engine se verificaron en el catálogo público el 2026-11
 5. Revisar `data/real/check.csv`: si la superficie máxima de agua de un área es 0 o absurda, corregir las
    coordenadas o el radio en `config/bodies.csv` y volver a correr con `--only <body_id>`.
 
-La app usa `data/real` automáticamente cuando existe `results.json`. Para la capa Landsat en vivo sobre el mapa 3D:
+La app usa `data/real` automáticamente cuando existe `results.json`. Para la capa Landsat en vivo en la interfaz original de Streamlit:
 
 ```bash
 set UMA_GEE_PROJECT=TU-PROYECTO && .venv\Scripts\streamlit run app/app.py
