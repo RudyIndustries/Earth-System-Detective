@@ -57,9 +57,12 @@ def landsat_3y(year, region):
     return col.median()
 
 
+MAX_WINDOW_KM = 60.0
+
+
 def window(lat, lon, radius_km):
-    """Ventana de alrededores: 2.5 veces el radio de la laguna, entre 20 y 60 km (mas grande no se genera)."""
-    r = min(60.0, max(20.0, 2.5 * radius_km))
+    """Ventana de alrededores: 2.5 veces el radio de la laguna, entre 20 y MAX_WINDOW_KM (mas grande no se genera)."""
+    r = min(MAX_WINDOW_KM, max(20.0, 2.5 * radius_km))
     return ee.Geometry.Point([lon, lat]).buffer(r * 1000).bounds(), r
 
 
@@ -140,7 +143,10 @@ def main(argv=None):
     ap.add_argument("--project", required=True)
     ap.add_argument("--only", default="")
     ap.add_argument("--skip-osm", action="store_true")
+    ap.add_argument("--max-window-km", type=float, default=60.0)
     a = ap.parse_args(argv)
+    global MAX_WINDOW_KM
+    MAX_WINDOW_KM = a.max_window_km
     ee.Initialize(project=a.project)
     OUT.mkdir(parents=True, exist_ok=True)
     cfg = pd.read_csv(ROOT / "config" / "bodies.csv")

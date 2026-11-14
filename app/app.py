@@ -166,6 +166,17 @@ c2.metric("Tendencia (Sen)", f"{r['trend']['sen_ha_per_year']:+.1f} ha/ano",
 c3.markdown(f"<div style='font-size:0.875rem'>Estado</div><div style='font-size:1.6rem;color:rgb{tuple(STATE_COLORS[r['state']])}'>{r['state']}</div>", unsafe_allow_html=True)
 c4.metric("Confianza en la huella humana", r["confidence"], f"{r['n_pass']} de 3 pruebas", delta_color="off")
 st.info(STATE_ACTION[r["state"]])
+q = r.get("data_quality") or {}
+if q.get("level") == "baja":
+    st.warning(f"Calidad de datos baja: la serie de agua de Landsat coincide poco con JRC (r = {q['r_jrc']:.2f}). "
+               "Puede haber agua bajo vegetacion o algas que el indice no detecta. Tomar este veredicto con cautela.")
+elif q.get("r_jrc") is not None:
+    st.caption(f"Calidad de la serie de agua: {q['level']} (Landsat vs JRC r = {q['r_jrc']:.2f}"
+               + (f"; anos interpolados: {', '.join(map(str, q['interpolated_years']))}" if q.get('interpolated_years') else "")
+               + ").")
+if r.get("climate_share") is not None:
+    st.caption(f"El clima (lluvia, temperatura y El Nino) explica el {100 * min(r['climate_share'], 9.99):.0f}% de la perdida "
+               f"entre {r['years'][0]}-{r['baseline_end']} y los ultimos 5 anos.")
 
 st.subheader("Antes y despues")
 meta = load_meta(sel)
@@ -225,7 +236,8 @@ with g2:
         x=alt.X("ha:Q", title="Hectareas ganadas (+) o perdidas (-)"),
         color=alt.condition(alt.datum.ha < 0, alt.value("#d64541"), alt.value("#2896c8"))),
         use_container_width=True)
-    st.caption("Huella humana solo se asigna con 2 o mas pruebas; si no, ese residuo queda como sin explicar.")
+    st.caption("Cambio entre el promedio del periodo base y el de los ultimos 5 anos; las barras suman el % de arriba. "
+               "Huella humana solo se asigna con 2 o mas pruebas; si no, ese residuo queda como sin explicar.")
 
 st.subheader("Las tres pruebas")
 names = {"clima": "1. Lo que el clima no explica", "control": "2. Gemela de control", "coincidencia": "3. Coincidencia en el tiempo"}
@@ -249,11 +261,12 @@ if meta or places:
     top = [x for x in r["suspects"] if x["evidence"] != "debil"][:2] or r["suspects"][:1]
     for sp in top:
         lines = [f"**{sp['label']}** (evidencia {sp['evidence']}, crece desde {sp['onset']})"]
-        ck = SUSPECT_CHANGE.get(sp["suspect"])
+        key = sp["suspect"].split("@")[0]
+        ck = SUSPECT_CHANGE.get(key)
         if meta and ck and meta["changes_ha"].get(ck):
             lines.append(f"{meta['legend'][ck]['label']} en los alrededores: {meta['changes_ha'][ck]:,} ha "
                          f"entre {meta['years'][0]} y {meta['years'][1]}")
-        kinds = SUSPECT_PLACE.get(sp["suspect"], [])
+        kinds = SUSPECT_PLACE.get(key, [])
         near = sorted([x for x in places if x["kind"] in kinds and x["name"]], key=lambda x: x["dist_km"])[:3]
         if near:
             lines.append("Lo mas cercano: " + "; ".join(f"[{x['name']}]({x['osm']}) ({x['kind'].lower()}, {x['dist_km']} km)"
@@ -306,5 +319,6 @@ with st.expander("Modo tecnico"):
     st.json(r["tests"])
     st.download_button("Descargar resultados (JSON)", results_path.read_bytes(), "uma_results.json")
 
-st.caption("Se prueba coincidencia y consistencia, no causalidad estricta. Datos: JRC Global Surface Water, CHIRPS, "
-           "ERA5-Land, NOAA ONI, Hansen GFC, MODIS MCD64A1.")
+st.caption("Se prueba coincidencia y consistencia, no causalidad estricta. Datos: Landsat 5/7/8/9 (NASA/USGS), "
+           "NASA POWER, NASA FIRMS, MODIS MCD64A1, GRACE, NOAA ONI, JRC Global Surface Water (validacion), "
+           "MapBiomas Bolivia, Hansen GFC 2025, DMSP/VIIRS, WorldPop, HydroBASINS, OpenStreetMap.")

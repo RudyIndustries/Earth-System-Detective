@@ -39,7 +39,7 @@ def build(out_dir: Path, seed: int = 7):
     for cid, name, lat, lon, ctrl, h_start, h_rate, sus, s_start in cases:
         precip, temp, oni = _climate(rng, 900 if lon > -65 else 450)
         if cid == "B":  # sequia de fondo que se intensifica: la causa es el clima
-            precip = precip * np.linspace(1.0, 0.75, len(YEARS))
+            precip = precip * np.linspace(1.0, 0.55, len(YEARS))
         loss = np.where(YEARS >= (h_start or 9999), (YEARS - (h_start or 0)) * h_rate, 0)
         for body_id, nm, la, lo, human in [(cid, name, lat, lon, loss), (ctrl, f"Gemela de control de {cid}", lat + 0.3, lon + 0.3, 0)]:
             p = precip * rng.normal(1, 0.03, len(YEARS))

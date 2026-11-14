@@ -1,0 +1,110 @@
+[
+ {
+  "kind": "Industria",
+  "name": "Mina Tucari",
+  "detail": "gold",
+  "lat": -16.57367,
+  "lon": -70.20384,
+  "dist_km": 17.4,
+  "osm": "https://www.openstreetmap.org/way/1218076172"
+ },
+ {
+  "kind": "Industria",
+  "name": "Nodo de Telecomunicaciones Boliviacom",
+  "detail": "telecommunication",
+  "lat": -16.88563,
+  "lon": -70.37518,
+  "dist_km": 25.4,
+  "osm": "https://www.openstreetmap.org/way/1486748204"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -16.58171,
+  "lon": -70.18696,
+  "dist_km": 16.5,
+  "osm": "https://www.openstreetmap.org/way/1218076174"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -16.57941,
+  "lon": -70.21333,
+  "dist_km": 16.8,
+  "osm": "https://www.openstreetmap.org/way/1218076175"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -16.57764,
+  "lon": -70.22171,
+  "dist_km": 17.1,
+  "osm": "https://www.openstreetmap.org/way/1218076176"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "Mina Tucari",
+  "detail": "gold",
+  "lat": -16.57367,
+  "lon": -70.20384,
+  "dist_km": 17.4,
+  "osm": "https://www.openstreetmap.org/way/1218076172"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -16.56882,
+  "lon": -70.18862,
+  "dist_km": 17.9,
+  "osm": "https://www.openstreetmap.org/way/1218076173"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Pasto Grande",
+  "detail": "",
+  "lat": -16.73226,
+  "lon": -70.19903,
+  "dist_km": 0.3,
+  "osm": "https://www.openstreetmap.org/relation/14368"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Pasto Grande",
+  "detail": "",
+  "lat": -16.74333,
+  "lon": -70.19722,
+  "dist_km": 1.5,
+  "osm": "https://www.openstreetmap.org/node/1728474350"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Presa Pasto Grande",
+  "detail": "",
+  "lat": -16.72239,
+  "lon": -70.2296,
+  "dist_km": 3.3,
+  "osm": "https://www.openstreetmap.org/node/12957597958"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Embalse Vizcachas",
+  "detail": "",
+  "lat": -16.65857,
+  "lon": -70.34976,
+  "dist_km": 17.8,
+  "osm": "https://www.openstreetmap.org/way/1411225271"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Presa Vizcachas",
+  "detail": "",
+  "lat": -16.64611,
+  "lon": -70.35728,
+  "dist_km": 19.1,
+  "osm": "https://www.openstreetmap.org/way/1412305358"
+ }
+]

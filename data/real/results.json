@@ -183,7 +183,7 @@
   "tests": {
    "clima": {
     "pass": false,
-    "detail": "Residuo -33802 ha (-18%) en 39 anos (p=0.180); el clima solo explica -98028 ha. R2 del modelo de clima = 0.23.",
+    "detail": "Lo que el clima no explica tiene una tendencia de -18% de la media base en 39 anos (p=0.180; hace falta p<0.05 y al menos -10%). R2 del modelo de clima = 0.23.",
     "p": 0.18028794638930234
    },
    "control": {
@@ -194,21 +194,55 @@
    "coincidencia": {
     "pass": false,
     "detail": "No se detecta un quiebre claro en el residuo.",
-    "p": 0.11951342395890947
+    "p": 0.02029027541996357
    }
+  },
+  "climate_share": 1.0243631288755173,
+  "data_quality": {
+   "level": "alta",
+   "r_jrc": 0.9314745367335804,
+   "interpolated_years": [
+    2002
+   ]
   },
   "n_pass": 1,
   "confidence": "Baja",
   "decomposition_ha": {
-   "Sequia y calor": -91354.8,
-   "El Nino": -353.6,
+   "Sequia y calor": -95496.5,
+   "El Nino": -1557.8,
    "Huella humana": 0.0,
-   "Sin explicar": -80653.6
+   "Sin explicar": 2308.3
   },
   "suspects": [
    {
-    "suspect": "night_lights",
-    "label": "Luces nocturnas (ciudad e industria)",
+    "suspect": "pasture_ha@cuenca",
+    "label": "Ganaderia (cuenca)",
+    "onset": 2003,
+    "rho": -0.3657530134031172,
+    "p": 0.02029027541996357,
+    "r2": 0.13377526681346086,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.1337752668134609,
+    "together_with": []
+   },
+   {
+    "suspect": "night_lights@cuenca",
+    "label": "Luces nocturnas (ciudad e industria) (cuenca)",
+    "onset": 2006,
+    "rho": -0.2540046241623022,
+    "p": 0.11374348105943131,
+    "r2": 0.06451834909583239,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0645183490958323,
+    "together_with": []
+   },
+   {
+    "suspect": "night_lights@cerca",
+    "label": "Luces nocturnas (ciudad e industria) (cerca)",
     "onset": 2008,
     "rho": -0.2501550532879368,
     "p": 0.11951342395890947,
@@ -220,8 +254,34 @@
     "together_with": []
    },
    {
-    "suspect": "urban_ha",
-    "label": "Crecimiento urbano",
+    "suspect": "forest_loss_ha@cuenca",
+    "label": "Desmonte (cuenca)",
+    "onset": 2001,
+    "rho": 0.2339696986484991,
+    "p": 0.14619940024722258,
+    "r2": 0.05474181988566948,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0547418198856695,
+    "together_with": []
+   },
+   {
+    "suspect": "urban_ha@cuenca",
+    "label": "Crecimiento urbano (cuenca)",
+    "onset": 2003,
+    "rho": -0.22946667317330743,
+    "p": 0.15434769415207986,
+    "r2": 0.05265495409722549,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0526549540972254,
+    "together_with": []
+   },
+   {
+    "suspect": "urban_ha@cerca",
+    "label": "Crecimiento urbano (cerca)",
     "onset": 2005,
     "rho": -0.21727097917799673,
     "p": 0.17807026152414557,
@@ -233,8 +293,21 @@
     "together_with": []
    },
    {
-    "suspect": "population",
-    "label": "Poblacion",
+    "suspect": "mining_ha@cuenca",
+    "label": "Mineria (cuenca)",
+    "onset": 2005,
+    "rho": -0.1810591493149973,
+    "p": 0.2635334165942927,
+    "r2": 0.03278241555067049,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0327824155506704,
+    "together_with": []
+   },
+   {
+    "suspect": "population@cerca",
+    "label": "Poblacion (cerca)",
     "onset": 2004,
     "rho": -0.15983994727043813,
     "p": 0.3245191448665537,
@@ -246,8 +319,34 @@
     "together_with": []
    },
    {
-    "suspect": "mining_ha",
-    "label": "Mineria",
+    "suspect": "population@cuenca",
+    "label": "Poblacion (cuenca)",
+    "onset": 2005,
+    "rho": -0.14275929716746477,
+    "p": 0.3795250636782364,
+    "r2": 0.020380216927748517,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0203802169277485,
+    "together_with": []
+   },
+   {
+    "suspect": "burned_ha@cuenca",
+    "label": "Incendios (cuenca)",
+    "onset": 2001,
+    "rho": 0.0945635349790245,
+    "p": 0.5616377696449246,
+    "r2": 0.008942262147729191,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.008942262147729,
+    "together_with": []
+   },
+   {
+    "suspect": "mining_ha@cerca",
+    "label": "Mineria (cerca)",
     "onset": 2005,
     "rho": -0.02608615615900646,
     "p": 0.8730553449371007,
@@ -259,8 +358,21 @@
     "together_with": []
    },
    {
-    "suspect": "dry_crop_ha",
-    "label": "Agricultura con riego",
+    "suspect": "agri_ha@cuenca",
+    "label": "Agricultura (cuenca)",
+    "onset": 2011,
+    "rho": 0.01978710265802684,
+    "p": 0.9035421005763157,
+    "r2": 0.00039152943159929276,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0003915294315993,
+    "together_with": []
+   },
+   {
+    "suspect": "dry_crop_ha@cerca",
+    "label": "Agricultura con riego (cerca)",
     "onset": 2013,
     "rho": 0.26359763033838096,
     "p": 0.10028252279524366,
@@ -272,8 +384,8 @@
     "together_with": []
    },
    {
-    "suspect": "agri_ha",
-    "label": "Agricultura",
+    "suspect": "agri_ha@cerca",
+    "label": "Agricultura (cerca)",
     "onset": 2023,
     "rho": 0.2484274626658182,
     "p": 0.1221732397528134,
@@ -285,8 +397,8 @@
     "together_with": []
    },
    {
-    "suspect": "pasture_ha",
-    "label": "Ganaderia",
+    "suspect": "pasture_ha@cerca",
+    "label": "Ganaderia (cerca)",
     "onset": 2023,
     "rho": 0.2484274626658182,
     "p": 0.1221732397528134,
@@ -298,8 +410,8 @@
     "together_with": []
    },
    {
-    "suspect": "burned_ha",
-    "label": "Incendios",
+    "suspect": "burned_ha@cerca",
+    "label": "Incendios (cerca)",
     "onset": 2010,
     "rho": 0.23771106941838657,
     "p": 0.13967332929183268,
@@ -311,8 +423,8 @@
     "together_with": []
    },
    {
-    "suspect": "forest_loss_ha",
-    "label": "Desmonte",
+    "suspect": "forest_loss_ha@cerca",
+    "label": "Desmonte (cerca)",
     "onset": 2003,
     "rho": 0.2101313320825516,
     "p": 0.19311077972675544,
@@ -321,6 +433,19 @@
     "rising": false,
     "evidence": "debil",
     "score": 0.044155176722787584,
+    "together_with": []
+   },
+   {
+    "suspect": "dry_crop_ha@cuenca",
+    "label": "Agricultura con riego (cuenca)",
+    "onset": 2013,
+    "rho": -0.00150093808630394,
+    "p": 0.9926661521379297,
+    "r2": 2.2528151389177334e-06,
+    "precedes": false,
+    "rising": false,
+    "evidence": "debil",
+    "score": 2.2528151389177334e-06,
     "together_with": []
    }
   ],
@@ -521,7 +646,7 @@
   "tests": {
    "clima": {
     "pass": false,
-    "detail": "Residuo +535 ha (+6%) en 39 anos (p=0.898); el clima solo explica -6058 ha. R2 del modelo de clima = 0.32.",
+    "detail": "Lo que el clima no explica tiene una tendencia de +6% de la media base en 39 anos (p=0.898; hace falta p<0.05 y al menos -10%). R2 del modelo de clima = 0.32.",
     "p": 0.8980212621322816
    },
    "control": {
@@ -532,21 +657,55 @@
    "coincidencia": {
     "pass": false,
     "detail": "No se detecta un quiebre claro en el residuo.",
-    "p": 0.3777151042339752
+    "p": 0.2038886477801201
    }
+  },
+  "climate_share": 1.230318490829175,
+  "data_quality": {
+   "level": "baja",
+   "r_jrc": 0.3472927804478701,
+   "interpolated_years": [
+    2002
+   ]
   },
   "n_pass": 1,
   "confidence": "Baja",
   "decomposition_ha": {
-   "Sequia y calor": -5967.2,
-   "El Nino": -9.0,
+   "Sequia y calor": -6173.1,
+   "El Nino": -39.7,
    "Huella humana": 0.0,
-   "Sin explicar": -3326.5
+   "Sin explicar": 1163.1
   },
   "suspects": [
    {
-    "suspect": "mining_ha",
-    "label": "Mineria",
+    "suspect": "burned_ha@cuenca",
+    "label": "Incendios (cuenca)",
+    "onset": 2001,
+    "rho": -0.20525328330206383,
+    "p": 0.2038886477801201,
+    "r2": 0.04212891030627727,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0421289103062772,
+    "together_with": []
+   },
+   {
+    "suspect": "population@cuenca",
+    "label": "Poblacion (cuenca)",
+    "onset": 2005,
+    "rho": 0.14790290202801926,
+    "p": 0.36241076607888784,
+    "r2": 0.021875268428309863,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.02187526842831,
+    "together_with": []
+   },
+   {
+    "suspect": "mining_ha@cerca",
+    "label": "Mineria (cerca)",
     "onset": 2005,
     "rho": 0.1432966639772128,
     "p": 0.3777151042339752,
@@ -558,8 +717,21 @@
     "together_with": []
    },
    {
-    "suspect": "population",
-    "label": "Poblacion",
+    "suspect": "mining_ha@cuenca",
+    "label": "Mineria (cuenca)",
+    "onset": 2005,
+    "rho": 0.14222055459146937,
+    "p": 0.38134478638081776,
+    "r2": 0.02022668614830512,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0202266861483051,
+    "together_with": []
+   },
+   {
+    "suspect": "population@cerca",
+    "label": "Poblacion (cerca)",
     "onset": 2004,
     "rho": 0.0904498062271089,
     "p": 0.5788571881902341,
@@ -571,8 +743,21 @@
     "together_with": []
    },
    {
-    "suspect": "urban_ha",
-    "label": "Crecimiento urbano",
+    "suspect": "agri_ha@cuenca",
+    "label": "Agricultura (cuenca)",
+    "onset": 2011,
+    "rho": 0.07352266575874677,
+    "p": 0.6520874590619093,
+    "r2": 0.005405582380272395,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0054055823802723,
+    "together_with": []
+   },
+   {
+    "suspect": "urban_ha@cerca",
+    "label": "Crecimiento urbano (cerca)",
     "onset": 2005,
     "rho": 0.06341760877561563,
     "p": 0.6974526451780875,
@@ -584,8 +769,47 @@
     "together_with": []
    },
    {
-    "suspect": "night_lights",
-    "label": "Luces nocturnas (ciudad e industria)",
+    "suspect": "urban_ha@cuenca",
+    "label": "Crecimiento urbano (cuenca)",
+    "onset": 2003,
+    "rho": 0.0448426286904501,
+    "p": 0.7835047735639593,
+    "r2": 0.0020108613478695787,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0020108613478695,
+    "together_with": []
+   },
+   {
+    "suspect": "pasture_ha@cuenca",
+    "label": "Ganaderia (cuenca)",
+    "onset": 2003,
+    "rho": -0.04111905027478576,
+    "p": 0.8011031396372307,
+    "r2": 0.001690776295500359,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0016907762955003,
+    "together_with": []
+   },
+   {
+    "suspect": "forest_loss_ha@cuenca",
+    "label": "Desmonte (cuenca)",
+    "onset": 2001,
+    "rho": -0.025892396482351945,
+    "p": 0.8739906568047453,
+    "r2": 0.0006704161955993113,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0006704161955993,
+    "together_with": []
+   },
+   {
+    "suspect": "night_lights@cerca",
+    "label": "Luces nocturnas (ciudad e industria) (cerca)",
     "onset": 2006,
     "rho": 0.011678373524703549,
     "p": 0.942983301495418,
@@ -597,8 +821,21 @@
     "together_with": []
    },
    {
-    "suspect": "dry_crop_ha",
-    "label": "Agricultura con riego",
+    "suspect": "night_lights@cuenca",
+    "label": "Luces nocturnas (ciudad e industria) (cuenca)",
+    "onset": 2006,
+    "rho": -0.007346073668765137,
+    "p": 0.9641169240536657,
+    "r2": 5.396479834692448e-05,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0000539647983469,
+    "together_with": []
+   },
+   {
+    "suspect": "dry_crop_ha@cerca",
+    "label": "Agricultura con riego (cerca)",
     "onset": 1991,
     "rho": 0.5241316864518952,
     "p": 0.0005179353305987089,
@@ -610,8 +847,21 @@
     "together_with": []
    },
    {
-    "suspect": "forest_loss_ha",
-    "label": "Desmonte",
+    "suspect": "dry_crop_ha@cuenca",
+    "label": "Agricultura con riego (cuenca)",
+    "onset": 2013,
+    "rho": 0.1834896810506567,
+    "p": 0.2570688003384279,
+    "r2": 0.03366846305207172,
+    "precedes": false,
+    "rising": false,
+    "evidence": "debil",
+    "score": 0.03366846305207172,
+    "together_with": []
+   },
+   {
+    "suspect": "forest_loss_ha@cerca",
+    "label": "Desmonte (cerca)",
     "onset": 2001,
     "rho": -0.038086303939962485,
     "p": 0.8155088717513232,
@@ -623,8 +873,8 @@
     "together_with": []
    },
    {
-    "suspect": "burned_ha",
-    "label": "Incendios",
+    "suspect": "burned_ha@cerca",
+    "label": "Incendios (cerca)",
     "onset": 2013,
     "rho": -0.017260787992495315,
     "p": 0.915810148377904,
@@ -833,7 +1083,7 @@
   "tests": {
    "clima": {
     "pass": true,
-    "detail": "Residuo -2396 ha (-40%) en 39 anos (p=0.001); el clima solo explica -1244 ha. R2 del modelo de clima = 0.42.",
+    "detail": "Lo que el clima no explica tiene una tendencia de -40% de la media base en 39 anos (p=0.001; hace falta p<0.05 y al menos -10%). R2 del modelo de clima = 0.42.",
     "p": 0.000826253158582535
    },
    "control": {
@@ -843,22 +1093,30 @@
    },
    "coincidencia": {
     "pass": false,
-    "detail": "El residuo cambia en 2002; crecimiento urbano empieza a crecer en 2005.",
+    "detail": "El residuo cambia en 2002; crecimiento urbano (cerca) empieza a crecer en 2005.",
     "p": 0.00014827300354829882
    }
+  },
+  "climate_share": 0.2380081100173134,
+  "data_quality": {
+   "level": "alta",
+   "r_jrc": 0.9638837128984076,
+   "interpolated_years": [
+    2002
+   ]
   },
   "n_pass": 2,
   "confidence": "Media",
   "decomposition_ha": {
-   "Sequia y calor": -1110.7,
-   "El Nino": -3.6,
-   "Huella humana": -2396.3,
-   "Sin explicar": -91.4
+   "Sequia y calor": -1144.2,
+   "El Nino": -15.8,
+   "Huella humana": -3713.9,
+   "Sin explicar": 0.0
   },
   "suspects": [
    {
-    "suspect": "urban_ha",
-    "label": "Crecimiento urbano",
+    "suspect": "urban_ha@cerca",
+    "label": "Crecimiento urbano (cerca)",
     "onset": 2005,
     "rho": -0.5644691377822354,
     "p": 0.00014827300354829882,
@@ -867,11 +1125,64 @@
     "rising": true,
     "evidence": "media",
     "score": 2.31862540750862,
-    "together_with": []
+    "together_with": [
+     "Crecimiento urbano (cuenca)",
+     "Ganaderia (cuenca)"
+    ]
    },
    {
-    "suspect": "burned_ha",
-    "label": "Incendios",
+    "suspect": "urban_ha@cuenca",
+    "label": "Crecimiento urbano (cuenca)",
+    "onset": 2005,
+    "rho": -0.5549040767866367,
+    "p": 0.00020238666296955445,
+    "r2": 0.30791853443442957,
+    "precedes": false,
+    "rising": true,
+    "evidence": "media",
+    "score": 2.3079185344344295,
+    "together_with": [
+     "Crecimiento urbano (cerca)",
+     "Ganaderia (cuenca)"
+    ]
+   },
+   {
+    "suspect": "pasture_ha@cuenca",
+    "label": "Ganaderia (cuenca)",
+    "onset": 2003,
+    "rho": -0.5535906943563725,
+    "p": 0.00021106510612661807,
+    "r2": 0.3064626568779707,
+    "precedes": false,
+    "rising": true,
+    "evidence": "media",
+    "score": 2.3064626568779705,
+    "together_with": [
+     "Crecimiento urbano (cerca)",
+     "Crecimiento urbano (cuenca)",
+     "Incendios (cuenca)",
+     "Incendios (cerca)"
+    ]
+   },
+   {
+    "suspect": "burned_ha@cuenca",
+    "label": "Incendios (cuenca)",
+    "onset": 2001,
+    "rho": 0.48163609978403943,
+    "p": 0.001651724689670986,
+    "r2": 0.2319733326151812,
+    "precedes": true,
+    "rising": true,
+    "evidence": "media",
+    "score": 2.231973332615181,
+    "together_with": [
+     "Ganaderia (cuenca)",
+     "Incendios (cerca)"
+    ]
+   },
+   {
+    "suspect": "burned_ha@cerca",
+    "label": "Incendios (cerca)",
     "onset": 2001,
     "rho": 0.4150288479634964,
     "p": 0.007746234025870414,
@@ -880,11 +1191,40 @@
     "rising": true,
     "evidence": "media",
     "score": 2.172248944641907,
+    "together_with": [
+     "Ganaderia (cuenca)",
+     "Incendios (cuenca)"
+    ]
+   },
+   {
+    "suspect": "agri_ha@cuenca",
+    "label": "Agricultura (cuenca)",
+    "onset": 2005,
+    "rho": -0.5447722694674556,
+    "p": 0.0002785537186614589,
+    "r2": 0.29677682558072205,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.296776825580722,
     "together_with": []
    },
    {
-    "suspect": "agri_ha",
-    "label": "Agricultura",
+    "suspect": "population@cuenca",
+    "label": "Poblacion (cuenca)",
+    "onset": 2005,
+    "rho": -0.4947565580963531,
+    "p": 0.001172999071991473,
+    "r2": 0.24478405177935003,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.24478405177935,
+    "together_with": []
+   },
+   {
+    "suspect": "agri_ha@cerca",
+    "label": "Agricultura (cerca)",
     "onset": 2006,
     "rho": -0.47741451340104724,
     "p": 0.0018387864131197418,
@@ -896,8 +1236,8 @@
     "together_with": []
    },
    {
-    "suspect": "pasture_ha",
-    "label": "Ganaderia",
+    "suspect": "pasture_ha@cerca",
+    "label": "Ganaderia (cerca)",
     "onset": 2009,
     "rho": -0.44776959568936897,
     "p": 0.0037645211908144626,
@@ -909,8 +1249,21 @@
     "together_with": []
    },
    {
-    "suspect": "night_lights",
-    "label": "Luces nocturnas (ciudad e industria)",
+    "suspect": "forest_loss_ha@cuenca",
+    "label": "Desmonte (cuenca)",
+    "onset": 2006,
+    "rho": 0.3345372675944458,
+    "p": 0.03486482579008505,
+    "r2": 0.11191518340955783,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.1119151834095578,
+    "together_with": []
+   },
+   {
+    "suspect": "night_lights@cerca",
+    "label": "Luces nocturnas (ciudad e industria) (cerca)",
     "onset": 2007,
     "rho": -0.2986905121808852,
     "p": 0.06118263947425969,
@@ -922,8 +1275,8 @@
     "together_with": []
    },
    {
-    "suspect": "population",
-    "label": "Poblacion",
+    "suspect": "population@cerca",
+    "label": "Poblacion (cerca)",
     "onset": 2005,
     "rho": -0.2567920464344744,
     "p": 0.10969879229266556,
@@ -935,8 +1288,21 @@
     "together_with": []
    },
    {
-    "suspect": "forest_loss_ha",
-    "label": "Desmonte",
+    "suspect": "night_lights@cuenca",
+    "label": "Luces nocturnas (ciudad e industria) (cuenca)",
+    "onset": 2008,
+    "rho": -0.14456696258403184,
+    "p": 0.37345683183059075,
+    "r2": 0.020899606670772862,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.020899606670773,
+    "together_with": []
+   },
+   {
+    "suspect": "forest_loss_ha@cerca",
+    "label": "Desmonte (cerca)",
     "onset": 2005,
     "rho": 0.06078799249530957,
     "p": 0.7094381330463323,
@@ -948,8 +1314,21 @@
     "together_with": []
    },
    {
-    "suspect": "dry_crop_ha",
-    "label": "Agricultura con riego",
+    "suspect": "dry_crop_ha@cuenca",
+    "label": "Agricultura con riego (cuenca)",
+    "onset": 2012,
+    "rho": 0.29587242026266425,
+    "p": 0.06378653982336993,
+    "r2": 0.08754048907208661,
+    "precedes": false,
+    "rising": false,
+    "evidence": "debil",
+    "score": 0.08754048907208661,
+    "together_with": []
+   },
+   {
+    "suspect": "dry_crop_ha@cerca",
+    "label": "Agricultura con riego (cerca)",
     "onset": 1999,
     "rho": 0.18930581613508446,
     "p": 0.24203119153625097,
@@ -1158,7 +1537,7 @@
   "tests": {
    "clima": {
     "pass": false,
-    "detail": "Residuo -7861 ha (-9%) en 39 anos (p=0.003); el clima solo explica -4625 ha. R2 del modelo de clima = 0.49.",
+    "detail": "Lo que el clima no explica tiene una tendencia de -9% de la media base en 39 anos (p=0.003; hace falta p<0.05 y al menos -10%). R2 del modelo de clima = 0.49.",
     "p": 0.002750610106765361
    },
    "control": {
@@ -1168,22 +1547,31 @@
    },
    "coincidencia": {
     "pass": true,
-    "detail": "El residuo cambia en 2012; crecimiento urbano empieza a crecer en 2010.",
+    "detail": "El residuo cambia en 2012; crecimiento urbano (cerca) empieza a crecer en 2010.",
     "p": 0.00016514132043604323
    }
+  },
+  "climate_share": 0.5763233282246039,
+  "data_quality": {
+   "level": "alta",
+   "r_jrc": 0.9240689815419777,
+   "interpolated_years": [
+    1985,
+    2002
+   ]
   },
   "n_pass": 1,
   "confidence": "Baja",
   "decomposition_ha": {
-   "Sequia y calor": -4760.6,
-   "El Nino": -23.4,
+   "Sequia y calor": -5074.6,
+   "El Nino": -103.3,
    "Huella humana": 0.0,
-   "Sin explicar": -11343.9
+   "Sin explicar": -3806.4
   },
   "suspects": [
    {
-    "suspect": "urban_ha",
-    "label": "Crecimiento urbano",
+    "suspect": "urban_ha@cerca",
+    "label": "Crecimiento urbano (cerca)",
     "onset": 2010,
     "rho": -0.5611895498457584,
     "p": 0.00016514132043604323,
@@ -1195,8 +1583,8 @@
     "together_with": []
    },
    {
-    "suspect": "population",
-    "label": "Poblacion",
+    "suspect": "population@cerca",
+    "label": "Poblacion (cerca)",
     "onset": 2007,
     "rho": -0.4966004919142878,
     "p": 0.0011166907148266842,
@@ -1205,11 +1593,72 @@
     "rising": true,
     "evidence": "media",
     "score": 2.2466120485695127,
+    "together_with": [
+     "Crecimiento urbano (cuenca)",
+     "Mineria (cuenca)"
+    ]
+   },
+   {
+    "suspect": "urban_ha@cuenca",
+    "label": "Crecimiento urbano (cuenca)",
+    "onset": 2007,
+    "rho": -0.4842628646445679,
+    "p": 0.0015439990790322104,
+    "r2": 0.2345105220737631,
+    "precedes": true,
+    "rising": true,
+    "evidence": "media",
+    "score": 2.234510522073763,
+    "together_with": [
+     "Poblacion (cerca)",
+     "Mineria (cuenca)"
+    ]
+   },
+   {
+    "suspect": "mining_ha@cuenca",
+    "label": "Mineria (cuenca)",
+    "onset": 2007,
+    "rho": -0.38206043082140956,
+    "p": 0.014981383714253156,
+    "r2": 0.14597017279944108,
+    "precedes": true,
+    "rising": true,
+    "evidence": "media",
+    "score": 2.145970172799441,
+    "together_with": [
+     "Poblacion (cerca)",
+     "Crecimiento urbano (cuenca)"
+    ]
+   },
+   {
+    "suspect": "pasture_ha@cuenca",
+    "label": "Ganaderia (cuenca)",
+    "onset": 2003,
+    "rho": -0.5087308982627033,
+    "p": 0.0008023582863894575,
+    "r2": 0.25880712684717705,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.258807126847177,
     "together_with": []
    },
    {
-    "suspect": "night_lights",
-    "label": "Luces nocturnas (ciudad e industria)",
+    "suspect": "night_lights@cuenca",
+    "label": "Luces nocturnas (ciudad e industria) (cuenca)",
+    "onset": 2006,
+    "rho": -0.4811678253041165,
+    "p": 0.0016716105929455477,
+    "r2": 0.23152247610789278,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.2315224761078927,
+    "together_with": []
+   },
+   {
+    "suspect": "night_lights@cerca",
+    "label": "Luces nocturnas (ciudad e industria) (cerca)",
     "onset": 2006,
     "rho": -0.475140277678463,
     "p": 0.0019471034519400819,
@@ -1221,8 +1670,34 @@
     "together_with": []
    },
    {
-    "suspect": "dry_crop_ha",
-    "label": "Agricultura con riego",
+    "suspect": "forest_loss_ha@cuenca",
+    "label": "Desmonte (cuenca)",
+    "onset": 2001,
+    "rho": 0.4746716697936211,
+    "p": 0.001970107890799243,
+    "r2": 0.22531319410466444,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.2253131941046644,
+    "together_with": []
+   },
+   {
+    "suspect": "population@cuenca",
+    "label": "Poblacion (cuenca)",
+    "onset": 2005,
+    "rho": -0.36092578257362445,
+    "p": 0.022135126401734383,
+    "r2": 0.13026742052638324,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.1302674205263832,
+    "together_with": []
+   },
+   {
+    "suspect": "dry_crop_ha@cerca",
+    "label": "Agricultura con riego (cerca)",
     "onset": 2002,
     "rho": -0.15440900562851784,
     "p": 0.3414403304027978,
@@ -1234,8 +1709,21 @@
     "together_with": []
    },
    {
-    "suspect": "burned_ha",
-    "label": "Incendios",
+    "suspect": "burned_ha@cuenca",
+    "label": "Incendios (cuenca)",
+    "onset": 2001,
+    "rho": 0.02476547842401501,
+    "p": 0.8794337989885963,
+    "r2": 0.000613328921570353,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.0006133289215704,
+    "together_with": []
+   },
+   {
+    "suspect": "burned_ha@cerca",
+    "label": "Incendios (cerca)",
     "onset": 2005,
     "rho": 0.4604127579737336,
     "p": 0.0027947514179384146,
@@ -1247,8 +1735,8 @@
     "together_with": []
    },
    {
-    "suspect": "forest_loss_ha",
-    "label": "Desmonte",
+    "suspect": "forest_loss_ha@cerca",
+    "label": "Desmonte (cerca)",
     "onset": 2001,
     "rho": -0.32120075046904323,
     "p": 0.043286215884110434,
@@ -1258,9 +1746,35 @@
     "evidence": "debil",
     "score": 0.10316992210187657,
     "together_with": []
+   },
+   {
+    "suspect": "agri_ha@cuenca",
+    "label": "Agricultura (cuenca)",
+    "onset": 2019,
+    "rho": -0.3197149178940615,
+    "p": 0.044318707549414554,
+    "r2": 0.10221762872400647,
+    "precedes": false,
+    "rising": false,
+    "evidence": "debil",
+    "score": 0.10221762872400647,
+    "together_with": []
+   },
+   {
+    "suspect": "dry_crop_ha@cuenca",
+    "label": "Agricultura con riego (cuenca)",
+    "onset": 2013,
+    "rho": -0.3097560975609756,
+    "p": 0.051764627667079455,
+    "r2": 0.09594883997620464,
+    "precedes": false,
+    "rising": false,
+    "evidence": "debil",
+    "score": 0.09594883997620464,
+    "together_with": []
    }
   ],
-  "state": "Causa climatica",
+  "state": "Sin explicar",
   "backtest": {
    "mae_ha": 4205.571711349157,
    "bias_ha": -1885.4062730835183,
@@ -1457,7 +1971,7 @@
   "tests": {
    "clima": {
     "pass": false,
-    "detail": "Residuo +8408 ha (+124%) en 39 anos (p=0.000); el clima solo explica -9183 ha. R2 del modelo de clima = 0.36.",
+    "detail": "Lo que el clima no explica tiene una tendencia de +124% de la media base en 39 anos (p=0.000; hace falta p<0.05 y al menos -10%). R2 del modelo de clima = 0.36.",
     "p": 0.0003800464851071439
    },
    "control": {
@@ -1471,13 +1985,21 @@
     "p": 0.00032117638798399606
    }
   },
+  "climate_share": 16.49352344384285,
+  "data_quality": {
+   "level": "alta",
+   "r_jrc": 0.9385155228298008,
+   "interpolated_years": [
+    2002
+   ]
+  },
   "n_pass": 0,
   "confidence": "Baja",
   "decomposition_ha": {
-   "Sequia y calor": -9341.7,
-   "El Nino": -8.1,
+   "Sequia y calor": -7226.7,
+   "El Nino": -35.9,
    "Huella humana": 0.0,
-   "Sin explicar": 8196.3
+   "Sin explicar": 6822.2
   },
   "suspects": [
    {
@@ -1691,7 +2213,7 @@
   "tests": {
    "clima": {
     "pass": true,
-    "detail": "Residuo -330 ha (-78%) en 39 anos (p=0.000); el clima solo explica -62 ha. R2 del modelo de clima = 0.09.",
+    "detail": "Lo que el clima no explica tiene una tendencia de -78% de la media base en 39 anos (p=0.000; hace falta p<0.05 y al menos -10%). R2 del modelo de clima = 0.09.",
     "p": 2.3739271386435945e-06
    },
    "control": {
@@ -1701,22 +2223,28 @@
    },
    "coincidencia": {
     "pass": true,
-    "detail": "El residuo cambia en 2004; ganaderia empieza a crecer en 2001.",
+    "detail": "El residuo cambia en 2004; ganaderia (cerca) empieza a crecer en 2001.",
     "p": 1.5366536244821336e-06
    }
+  },
+  "climate_share": 0.13264962247134116,
+  "data_quality": {
+   "level": "alta",
+   "r_jrc": 0.9111993262019811,
+   "interpolated_years": []
   },
   "n_pass": 3,
   "confidence": "Alta",
   "decomposition_ha": {
-   "Sequia y calor": -62.2,
-   "El Nino": 0.0,
-   "Huella humana": -329.7,
-   "Sin explicar": -10.2
+   "Sequia y calor": -34.0,
+   "El Nino": 0.1,
+   "Huella humana": -221.8,
+   "Sin explicar": 0.0
   },
   "suspects": [
    {
-    "suspect": "pasture_ha",
-    "label": "Ganaderia",
+    "suspect": "pasture_ha@cerca",
+    "label": "Ganaderia (cerca)",
     "onset": 2001,
     "rho": -0.6779867731085416,
     "p": 1.5366536244821336e-06,
@@ -1726,12 +2254,12 @@
     "evidence": "fuerte",
     "score": 3.459666064510133,
     "together_with": [
-     "Desmonte"
+     "Desmonte (cerca)"
     ]
    },
    {
-    "suspect": "forest_loss_ha",
-    "label": "Desmonte",
+    "suspect": "forest_loss_ha@cerca",
+    "label": "Desmonte (cerca)",
     "onset": 2001,
     "rho": -0.5949622409096957,
     "p": 5.144581243272806e-05,
@@ -1741,12 +2269,28 @@
     "evidence": "fuerte",
     "score": 3.353980068108287,
     "together_with": [
-     "Ganaderia"
+     "Ganaderia (cerca)"
     ]
    },
    {
-    "suspect": "burned_ha",
-    "label": "Incendios",
+    "suspect": "pasture_ha@cuenca",
+    "label": "Ganaderia (cuenca)",
+    "onset": 2006,
+    "rho": -0.7196397587540644,
+    "p": 1.6687720475489918e-07,
+    "r2": 0.517881382379608,
+    "precedes": false,
+    "rising": true,
+    "evidence": "media",
+    "score": 2.517881382379608,
+    "together_with": [
+     "Crecimiento urbano (cuenca)",
+     "Poblacion (cuenca)"
+    ]
+   },
+   {
+    "suspect": "burned_ha@cerca",
+    "label": "Incendios (cerca)",
     "onset": 2002,
     "rho": 0.7127579737335836,
     "p": 2.4729437350520917e-07,
@@ -1755,11 +2299,104 @@
     "rising": true,
     "evidence": "media",
     "score": 2.508023929120804,
+    "together_with": [
+     "Incendios (cuenca)",
+     "Desmonte (cuenca)"
+    ]
+   },
+   {
+    "suspect": "urban_ha@cuenca",
+    "label": "Crecimiento urbano (cuenca)",
+    "onset": 2006,
+    "rho": -0.7069863844932346,
+    "p": 3.409837513842696e-07,
+    "r2": 0.49982974785881573,
+    "precedes": false,
+    "rising": true,
+    "evidence": "media",
+    "score": 2.499829747858816,
+    "together_with": [
+     "Ganaderia (cuenca)",
+     "Poblacion (cuenca)"
+    ]
+   },
+   {
+    "suspect": "population@cuenca",
+    "label": "Poblacion (cuenca)",
+    "onset": 2008,
+    "rho": -0.6391656907851279,
+    "p": 9.030365978131252e-06,
+    "r2": 0.40853278027682965,
+    "precedes": false,
+    "rising": true,
+    "evidence": "media",
+    "score": 2.4085327802768295,
+    "together_with": [
+     "Ganaderia (cuenca)",
+     "Crecimiento urbano (cuenca)"
+    ]
+   },
+   {
+    "suspect": "burned_ha@cuenca",
+    "label": "Incendios (cuenca)",
+    "onset": 2001,
+    "rho": -0.5172607879924954,
+    "p": 0.0006312377888309664,
+    "r2": 0.2675587227946173,
+    "precedes": true,
+    "rising": true,
+    "evidence": "media",
+    "score": 2.2675587227946172,
+    "together_with": [
+     "Incendios (cerca)",
+     "Desmonte (cuenca)"
+    ]
+   },
+   {
+    "suspect": "forest_loss_ha@cuenca",
+    "label": "Desmonte (cuenca)",
+    "onset": 2002,
+    "rho": -0.4660412757973735,
+    "p": 0.0024387684072683254,
+    "r2": 0.21719447074684353,
+    "precedes": true,
+    "rising": true,
+    "evidence": "media",
+    "score": 2.2171944707468434,
+    "together_with": [
+     "Incendios (cerca)",
+     "Incendios (cuenca)"
+    ]
+   },
+   {
+    "suspect": "night_lights@cuenca",
+    "label": "Luces nocturnas (ciudad e industria) (cuenca)",
+    "onset": 2011,
+    "rho": -0.3848447321279904,
+    "p": 0.014204289435019765,
+    "r2": 0.1481054678466647,
+    "precedes": false,
+    "rising": true,
+    "evidence": "debil",
+    "score": 1.1481054678466647,
     "together_with": []
    },
    {
-    "suspect": "agri_ha",
-    "label": "Agricultura",
+    "suspect": "agri_ha@cuenca",
+    "label": "Agricultura (cuenca)",
+    "onset": 2016,
+    "rho": -0.337336631205511,
+    "p": 0.03328004777589688,
+    "r2": 0.11379600275308294,
+    "precedes": false,
+    "rising": false,
+    "evidence": "debil",
+    "score": 0.11379600275308294,
+    "together_with": []
+   },
+   {
+    "suspect": "agri_ha@cerca",
+    "label": "Agricultura (cerca)",
     "onset": 2023,
     "rho": -0.2583645611724509,
     "p": 0.10746565925028734,
@@ -1768,6 +2405,19 @@
     "rising": false,
     "evidence": "debil",
     "score": 0.06675224646983312,
+    "together_with": []
+   },
+   {
+    "suspect": "dry_crop_ha@cuenca",
+    "label": "Agricultura con riego (cuenca)",
+    "onset": 2012,
+    "rho": -0.13039399624765483,
+    "p": 0.42257268103142365,
+    "r2": 0.01700259425743342,
+    "precedes": false,
+    "rising": false,
+    "evidence": "debil",
+    "score": 0.01700259425743342,
     "together_with": []
    }
   ],
@@ -1968,7 +2618,7 @@
   "tests": {
    "clima": {
     "pass": false,
-    "detail": "Residuo -32 ha (-1%) en 39 anos (p=0.954); el clima solo explica +2339 ha. R2 del modelo de clima = 0.32.",
+    "detail": "Lo que el clima no explica tiene una tendencia de -1% de la media base en 39 anos (p=0.954; hace falta p<0.05 y al menos -10%). R2 del modelo de clima = 0.32.",
     "p": 0.9535453737590693
    },
    "control": {
@@ -1982,13 +2632,21 @@
     "p": 0.0103068650677129
    }
   },
+  "climate_share": null,
+  "data_quality": {
+   "level": "alta",
+   "r_jrc": 0.9963378072521735,
+   "interpolated_years": [
+    2002
+   ]
+  },
   "n_pass": 0,
   "confidence": "Baja",
   "decomposition_ha": {
-   "Sequia y calor": 2327.5,
-   "El Nino": -5.3,
+   "Sequia y calor": 1976.6,
+   "El Nino": -23.6,
    "Huella humana": 0.0,
-   "Sin explicar": -1640.3
+   "Sin explicar": -509.3
   },
   "suspects": [
    {
@@ -2215,7 +2873,7 @@
   "tests": {
    "clima": {
     "pass": false,
-    "detail": "Residuo -52 ha (-4%) en 39 anos (p=0.000); el clima solo explica -14 ha. R2 del modelo de clima = 0.50.",
+    "detail": "Lo que el clima no explica tiene una tendencia de -4% de la media base en 39 anos (p=0.000; hace falta p<0.05 y al menos -10%). R2 del modelo de clima = 0.50.",
     "p": 4.67524608960268e-06
    },
    "control": {
@@ -2229,13 +2887,21 @@
     "p": 5.824004078128611e-06
    }
   },
+  "climate_share": 0.17948629752179554,
+  "data_quality": {
+   "level": "alta",
+   "r_jrc": 0.8978714053336955,
+   "interpolated_years": [
+    2002
+   ]
+  },
   "n_pass": 0,
   "confidence": "Baja",
   "decomposition_ha": {
-   "Sequia y calor": -9.8,
-   "El Nino": 0.3,
+   "Sequia y calor": -10.9,
+   "El Nino": 1.2,
    "Huella humana": 0.0,
-   "Sin explicar": -54.8
+   "Sin explicar": -44.0
   },
   "suspects": [
    {
@@ -2304,7 +2970,7 @@
     "together_with": []
    }
   ],
-  "state": "Causa climatica",
+  "state": "Intacto",
   "backtest": {
    "mae_ha": 37.29940575139856,
    "bias_ha": -37.29940575139856,

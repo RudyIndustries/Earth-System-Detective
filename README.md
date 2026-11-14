@@ -8,11 +8,18 @@ y audita qué actividad humana es la sospechosa.
 
 | Carpeta | Quién | Qué |
 |---|---|---|
-| `gee/extraer_series.py` | P1 Datos | Celdas para Colab: Earth Engine → `bodies.csv`, `series.csv`, `suspects.csv` |
-| `uma/engine.py` | P2 Modelo | Motor: tendencia, 3 pruebas, confianza, descomposición, sospechosos, estado |
+| `uma/upstream.py` | P1 Datos | Cuenca de aporte completa de cada cuerpo de agua (HydroBASINS) |
+| `uma/nasa_power.py` | P1 Datos | Clima NASA POWER promediado en la cuenca de aporte (sin clave) |
+| `uma/gee_extract.py` | P1 Datos | Earth Engine: agua Landsat, validación JRC, sospechosos, imágenes antes/después |
+| `uma/suspects_upstream.py` | P1 Datos | Sospechosos medidos en la cuenca de aporte (misma área que el clima) |
+| `uma/context.py` | P1 Datos | Alrededores: mapa de lo que apareció (MapBiomas, Hansen) y lugares de OpenStreetMap |
+| `uma/twins.py` | P2 Modelo | Búsqueda de gemelas de control (gHM, áreas protegidas, otra cuenca) |
+| `uma/engine.py` | P2 Modelo | Motor: tendencia, 3 pruebas, confianza, descomposición, sospechosos, estado, calidad |
+| `uma/audit.py` | P2 Modelo | Auditoría en SQLite (`data/real/uma.db`): corridas, veredictos, alertas, revisiones |
 | `uma/synthetic.py` | P2/P3 | Datos de prueba ficticios con el mismo formato |
-| `run_engine.py` | P2 | CSV → `results.json` |
-| `app/app.py` | P3 Interfaz | Streamlit: mapa, alertas, tarjeta, modo técnico |
+| `run_engine.py` | P2 | CSV → `results.json` + registro de auditoría |
+| `app/app.py`, `app/map3d.py` | P3 Interfaz | Streamlit: mapa 3D, alertas, tarjeta, antes/después, alrededores, historial |
+| `gee/extraer_series.py` | P1 Datos | Cómo correr lo mismo desde Google Colab |
 
 ## Arranque
 
@@ -35,7 +42,9 @@ python -m venv .venv
 | Riego (verde en época seca) | Landsat NDVI | Earth Engine | Requiere proyecto GEE |
 
 Fuentes externas para validar y para lo que NASA no cubre: JRC Global Surface Water (validación del agua,
-hasta 2021), Hansen GFC 2025 (desmonte, derivado de Landsat), GHSL (ciudad), HydroBASINS (cuencas), ONI de NOAA
+hasta 2021), Hansen GFC 2025 (desmonte, derivado de Landsat), MapBiomas Bolivia colección 2 (minería, ciudad,
+agricultura, pasto), DMSP-OLS + VIIRS (luces), WorldPop (población), GRACE (agua subterránea, contexto),
+HydroBASINS (cuencas), ONI de NOAA
 (El Niño, extraído en `data/real/oni.csv`). Con `--climate chirps` se usa CHIRPS + ERA5-Land en lugar de NASA POWER.
 
 Todos los IDs de Earth Engine se verificaron en el catálogo público el 2026-11-14.
@@ -69,7 +78,10 @@ Todos los IDs de Earth Engine se verificaron en el catálogo público el 2026-11
 | Lluvia y temperatura | NASA POWER | [Visor](https://power.larc.nasa.gov/data-access-viewer/) · [API](https://power.larc.nasa.gov/docs/services/api/) |
 | Validación del agua | JRC Global Surface Water | [YearlyHistory](https://developers.google.com/earth-engine/datasets/catalog/JRC_GSW1_4_YearlyHistory) · [visor](https://global-surface-water.appspot.com) |
 | Desmonte | Hansen GFC 2025 | [catálogo](https://developers.google.com/earth-engine/datasets/catalog/UMD_hansen_global_forest_change_2025_v1_13) · [visor](https://glad.earthengine.app/view/global-forest-change) |
-| Ciudad | GHSL superficie construida | [catálogo](https://developers.google.com/earth-engine/datasets/catalog/JRC_GHSL_P2023A_GHS_BUILT_S) |
+| Minería, ciudad, agricultura, pasto | MapBiomas Bolivia colección 2 | [bolivia.mapbiomas.org](https://bolivia.mapbiomas.org) (asset público en Earth Engine) |
+| Luces nocturnas | DMSP-OLS y VIIRS anual | [DMSP](https://developers.google.com/earth-engine/datasets/catalog/NOAA_DMSP-OLS_NIGHTTIME_LIGHTS) · [VIIRS](https://developers.google.com/earth-engine/datasets/catalog/NOAA_VIIRS_DNB_ANNUAL_V22) |
+| Población | WorldPop | [catálogo](https://developers.google.com/earth-engine/datasets/catalog/WorldPop_GP_100m_pop) |
+| Agua subterránea | GRACE / GRACE-FO (NASA) | [catálogo](https://developers.google.com/earth-engine/datasets/catalog/NASA_GRACE_MASS_GRIDS_V04_MASCON) |
 | Cuencas | HydroBASINS | [catálogo](https://developers.google.com/earth-engine/datasets/catalog/WWF_HydroSHEDS_v1_Basins_hybas_8) · [HydroSHEDS](https://www.hydrosheds.org/products/hydrobasins) |
 | Relieve (opcional) | NASADEM | [NASA/NASADEM_HGT/001](https://developers.google.com/earth-engine/datasets/catalog/NASA_NASADEM_HGT_001) |
 | El Niño | ONI de NOAA | [tabla](https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php) · [texto](https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt) |
@@ -110,8 +122,9 @@ comparador antes/después.
 
 `series.csv`: `body_id, year, water_ha, precip_mm, temp_c, oni` (una fila por año, sin huecos)
 
-`suspects.csv`: `body_id, year, suspect, value`. Nombres de `suspect` reconocidos:
-`forest_loss_ha, burned_ha, dry_crop_ha, pasture_ha, mining_ha, urban_ha, artificial_water_ha`.
+`suspects.csv`: `body_id, year, suspect, value[, area]`. Nombres de `suspect` reconocidos:
+`forest_loss_ha, burned_ha, dry_crop_ha, mining_ha, urban_ha, pasture_ha, agri_ha, night_lights, population,
+artificial_water_ha`. `area` dice si se midió en la `cuenca_aporte` o en la `subcuenca_local`.
 
 ## Cómo decide el motor
 
@@ -121,12 +134,20 @@ comparador antes/después.
 2. **Prueba 2, control.** Pasa si el residuo, en % de la media base, cae más que el de la gemela (Mann-Kendall
    sobre la diferencia).
 3. **Prueba 3, coincidencia.** Pasa si el sospechoso principal crece de forma significativa, empieza a crecer
-   0 a 5 años antes del quiebre del residuo (Pettitt) y se correlaciona negativamente con él.
+   0 a 5 años antes del quiebre del residuo (Pettitt) y se correlaciona negativamente con él (más presión, menos agua).
 
-Confianza: 3 pruebas = alta, 2 = media, 0 o 1 = baja. La huella humana solo se asigna en la descomposición con
-2 o más pruebas; si no, queda como "sin explicar".
+Confianza: 3 pruebas = alta, 2 = media, 0 o 1 = baja. Si la serie de agua es de calidad baja (Landsat vs JRC
+r < 0.7), la confianza baja un nivel y la app lo advierte.
 
-Estados: **Huella humana** (presión sube y residuo cae), **Causa climática** (el agua cae pero el residuo no),
-**Alerta temprana** (presión sube, residuo estable), **Sin explicar** (residuo cae sin presión medida), **Intacto**.
+Descomposición: cambio entre el promedio del periodo base y el de los últimos 5 años (el mismo % de la tarjeta),
+repartido en sequía y calor, El Niño, huella humana (solo con 2 o más pruebas) y sin explicar. Las partes suman el total.
+
+Estados: **Huella humana** (2 o más pruebas), **Causa climática** (cae al menos 10% y el clima explica al menos el
+60% de la pérdida), **Alerta temprana** (presión sube, agua aún estable), **Sin explicar** (cae y el clima no
+alcanza a explicarlo, sin pruebas suficientes para acusar), **Intacto**.
+
+Áreas: el agua se mide en el círculo de la laguna; el clima, en la cuenca de aporte completa; los sospechosos, en dos
+escalas que se auditan por separado: "cerca" (subcuenca local) y "cuenca" (cuenca de aporte completa)
+(`uma/suspects_upstream.py`). MapBiomas solo cubre la parte boliviana de cada cuenca.
 
 Limitación: prueba coincidencia y consistencia, no causalidad estricta.

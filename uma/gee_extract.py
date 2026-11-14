@@ -60,6 +60,14 @@ DS = {
 }
 
 
+SCALE_MULT = 1  # se sube para cuencas muy grandes (resolucion mas gruesa, mismo resultado en hectareas)
+
+
+def S(base_m):
+    """Escala de calculo en metros, ajustada al tamano del area."""
+    return base_m * SCALE_MULT
+
+
 def log(*a):
     print(*a, flush=True)
 
@@ -193,7 +201,7 @@ def climate_series(basin):
 
 def forest_loss(basin):
     g = retry(lambda: HA().addBands(ee.Image(DS["hansen"]).select("lossyear"))
-              .reduceRegion(ee.Reducer.sum().group(groupField=1, groupName="ly"), basin, 100,
+              .reduceRegion(ee.Reducer.sum().group(groupField=1, groupName="ly"), basin, S(100),
                             maxPixels=1e11, tileScale=4).get("groups").getInfo())
     return pd.DataFrame([{"year": 2000 + x["ly"], "value": x["sum"]} for x in g if x["ly"] > 0],
                         columns=["year", "value"])
@@ -222,7 +230,7 @@ def dry_crops(basin):
         img = landsat_dry(y, basin)
         ndvi = img.normalizedDifference(["NIR", "R"])
         v = retry(lambda: HA().updateMask(ndvi.gt(0.45).And(nonforest))
-                  .reduceRegion(ee.Reducer.sum(), basin, 120, maxPixels=1e11, tileScale=4).get("area").getInfo())
+                  .reduceRegion(ee.Reducer.sum(), basin, S(120), maxPixels=1e11, tileScale=4).get("area").getInfo())
         rows.append({"year": y, "value": v or 0.0})
     df = pd.DataFrame(rows)
     df["value"] = df["value"].astype(float).interpolate(limit_direction="both")
@@ -236,7 +244,7 @@ def urban(basin):
     rows = []
     for e in epochs:
         img = col.filter(ee.Filter.eq("system:index", str(e))).first().select("built_surface")
-        v = retry(lambda: img.divide(1e4).reduceRegion(ee.Reducer.sum(), basin, 100, maxPixels=1e11, tileScale=4)
+        v = retry(lambda: img.divide(1e4).reduceRegion(ee.Reducer.sum(), basin, S(100), maxPixels=1e11, tileScale=4)
                   .get("built_surface").getInfo())
         rows.append({"year": e, "value": v or 0.0})
     s = pd.DataFrame(rows).set_index("year")["value"].reindex(range(1975, 2025)).interpolate()
@@ -263,7 +271,7 @@ def mapbiomas(basin, key):
         for y in range(1985, 2024):
             cls = img.select(f"classification_{y}").remap(codes, groups, -1)
             g = retry(lambda: HA().addBands(cls).updateMask(cls.gte(0))
-                      .reduceRegion(ee.Reducer.sum().group(1, "k"), basin, 30, maxPixels=1e11, tileScale=4)
+                      .reduceRegion(ee.Reducer.sum().group(1, "k"), basin, S(30), maxPixels=1e11, tileScale=4)
                       .get("groups").getInfo())
             row = {"year": y, **{k: 0.0 for k in MB_CLASSES}}
             for x in g:
@@ -310,7 +318,7 @@ def population(basin):
     rows = []
     for y in range(2000, 2021):
         img = col.filter(ee.Filter.eq("year", y)).mosaic()
-        v = retry(lambda: img.reduceRegion(ee.Reducer.sum(), basin, 100, maxPixels=1e11, tileScale=4)
+        v = retry(lambda: img.reduceRegion(ee.Reducer.sum(), basin, 100, maxPixels=1e11, tileScale=4)  # conteo de personas: siempre a 100 m
                   .get("population").getInfo())
         rows.append({"year": y, "value": v or 0.0})
     return pd.DataFrame(rows)

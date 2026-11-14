@@ -28,6 +28,7 @@ CLIMATE_VARS = ["precip_mm", "precip_lag1", "temp_c", "oni"]
 CLIMATE_GROUPS = {"Sequia y calor": ["precip_mm", "precip_lag1", "temp_c"], "El Nino": ["oni"]}
 MAX_LAG_YEARS = 5
 MIN_EFFECT_PCT = 10  # una perdida menor al 10% de la media base no se considera relevante
+CLIMATE_SHARE_MIN = 0.6  # para decir "causa climatica", el clima debe explicar al menos el 60% de la perdida
 
 SUSPECT_LABELS = {
     "forest_loss_ha": "Desmonte",
@@ -155,8 +156,9 @@ def analyze_body(body_id: str, series: pd.DataFrame, suspects: pd.DataFrame,
     t1 = resid_mk["p"] < ALPHA and resid_pct <= -MIN_EFFECT_PCT
     test1 = {
         "pass": bool(t1),
-        "detail": f"Residuo {resid_slope*span:+.0f} ha ({resid_pct:+.0f}%) en {span} anos (p={resid_mk['p']:.3f}); "
-                  f"el clima solo explica {clim_slope*span:+.0f} ha. R2 del modelo de clima = {fit.r2:.2f}.",
+        "detail": f"Lo que el clima no explica tiene una tendencia de {resid_pct:+.0f}% de la media base en {span} anos "
+                  f"(p={resid_mk['p']:.3f}; hace falta p<0.05 y al menos -{MIN_EFFECT_PCT}%). "
+                  f"R2 del modelo de clima = {fit.r2:.2f}.",
         "p": resid_mk["p"],
     }
 
@@ -181,7 +183,8 @@ def analyze_body(body_id: str, series: pd.DataFrame, suspects: pd.DataFrame,
     resid_break = int(years[cp_idx]) if cp_p < 0.1 else None
     ranked = audit_suspects(df, resid, suspects[suspects.body_id == body_id], resid_break, baseline_end)
     top = ranked[0] if ranked else None
-    t3 = bool(top and top["precedes"] and top["p"] < ALPHA)
+    # pasa solo si el sospechoso crece antes del quiebre Y se relaciona en el sentido esperado (mas presion, menos agua)
+    t3 = bool(top and top["precedes"] and top["p"] < ALPHA and top["rho"] < 0)
     test3 = {
         "pass": t3,
         "detail": (f"El residuo cambia en {resid_break}; {top['label'].lower()} empieza a crecer en {top['onset']}."
@@ -192,17 +195,31 @@ def analyze_body(body_id: str, series: pd.DataFrame, suspects: pd.DataFrame,
     n_pass = sum(t["pass"] for t in (test1, test2, test3))
     confidence = {3: "Alta", 2: "Media"}.get(n_pass, "Baja")
 
-    # Descomposicion del cambio total (ha a lo largo del periodo)
-    groups = {g: sen_slope(years, sum(fit.contributions[v] for v in vs)) * span for g, vs in CLIMATE_GROUPS.items()}
-    human = resid_slope * span if n_pass >= 2 else 0.0
-    unexplained = total_slope * span - sum(groups.values()) - human
-    decomposition = {**groups, "Huella humana": human, "Sin explicar": unexplained}
+    # Descomposicion del cambio: promedio de los ultimos 5 anos menos el promedio del periodo base.
+    # Es la misma medida que el % de la tarjeta, y las partes suman exactamente el total.
+    last, base_idx = df.index[-5:], df.loc[:baseline_end].index
+    total_change = float(df["water_ha"].loc[last].mean() - base_mean)
+    groups = {}
+    for g, vs in CLIMATE_GROUPS.items():
+        c = sum(fit.contributions[v] for v in vs)
+        groups[g] = float(c.loc[last].mean() - c.loc[base_idx].mean())
+    resid_change = float(resid.loc[last].mean() - resid.loc[base_idx].mean())
+    human = resid_change if n_pass >= 2 else 0.0
+    decomposition = {**groups, "Huella humana": human, "Sin explicar": resid_change - human}
+    clim_change = sum(groups.values())
+    climate_share = clim_change / total_change if total_change < 0 else None
 
     state = classify_state(df, resid, suspects[suspects.body_id == body_id], base_mean)
     if n_pass >= 2:            # las pruebas mandan: con 2 o 3 la perdida no la explica el clima
         state = "Huella humana"
     elif state == "Huella humana":
         state = "Sin explicar"  # presion y caida sin pruebas suficientes: no se acusa
+    elif state == "Causa climatica" and (climate_share is None or climate_share < CLIMATE_SHARE_MIN):
+        state = "Sin explicar"  # cae, pero el clima explica menos de la mayor parte: no se puede decir "climatica"
+
+    quality = data_quality(df)
+    if quality["level"] == "baja" and n_pass >= 2:
+        confidence = {"Alta": "Media", "Media": "Baja"}[confidence]  # datos dudosos: se baja un nivel
 
     return {
         "body_id": body_id,
@@ -216,6 +233,8 @@ def analyze_body(body_id: str, series: pd.DataFrame, suspects: pd.DataFrame,
                   "change_pct": 100 * (df["water_ha"].iloc[-5:].mean() - base_mean) / base_mean if base_mean else 0.0},
         "climate_r2": fit.r2,
         "tests": {"clima": test1, "control": test2, "coincidencia": test3},
+        "climate_share": climate_share,
+        "data_quality": quality,
         "n_pass": n_pass,
         "confidence": confidence,
         "decomposition_ha": {k: round(float(v), 1) for k, v in decomposition.items()},
@@ -239,6 +258,30 @@ def _excess(s: pd.Series, baseline_end: int, cumulative: bool) -> pd.Series:
     return ex.cumsum() if cumulative else ex
 
 
+AREA_TAG = {"subcuenca_local": "cerca", "cuenca_aporte": "cuenca"}
+
+
+def base_name(name: str) -> str:
+    """'mining_ha@cuenca' -> 'mining_ha'."""
+    return name.split("@")[0]
+
+
+def suspect_label(name: str) -> str:
+    base, _, area = name.partition("@")
+    lab = SUSPECT_LABELS.get(base, base)
+    return f"{lab} ({area})" if area else lab
+
+
+def tag_areas(sus: pd.DataFrame) -> pd.DataFrame:
+    """Si un cuerpo de agua tiene sospechosos medidos en dos escalas, cada escala es un sospechoso aparte."""
+    if "area" not in sus or sus.empty:
+        return sus
+    sus = sus.copy()
+    multi = sus.groupby("body_id")["area"].transform("nunique") > 1
+    sus.loc[multi, "suspect"] = sus.loc[multi, "suspect"] + "@" + sus.loc[multi, "area"].map(AREA_TAG).fillna("")
+    return sus
+
+
 def audit_suspects(df, resid, sus: pd.DataFrame, resid_break: int | None, baseline_end: int) -> list[dict]:
     out = []
     for name, g in sus.groupby("suspect"):
@@ -247,7 +290,7 @@ def audit_suspects(df, resid, sus: pd.DataFrame, resid_break: int | None, baseli
             continue
         rising_mk = mann_kendall(s)
         rising = rising_mk["p"] < ALPHA and sen_slope(s.index.values, s) > 0
-        pressure = _excess(s, baseline_end, name in ("forest_loss_ha", "burned_ha"))
+        pressure = _excess(s, baseline_end, base_name(name) in ("forest_loss_ha", "burned_ha"))
         idx, _ = pettitt(s.values)
         onset = int(df.index[idx])
         rho, p = stats.spearmanr(pressure, resid)
@@ -257,7 +300,7 @@ def audit_suspects(df, resid, sus: pd.DataFrame, resid_break: int | None, baseli
         hits = sum([precedes, rising, bool(p < ALPHA and rho < 0 and r2 > 0.3)])
         out.append({
             "suspect": name,
-            "label": SUSPECT_LABELS.get(name, name),
+            "label": suspect_label(name),
             "onset": onset,
             "rho": float(rho),
             "p": float(p),
@@ -273,6 +316,28 @@ def audit_suspects(df, resid, sus: pd.DataFrame, resid_break: int | None, baseli
         a["together_with"] = [b["label"] for b in out if b is not a and b["evidence"] == a["evidence"] != "debil"
                               and abs(b["onset"] - a["onset"]) <= 2]
     return out
+
+
+# solo el cambio de uso del suelo dispara la alerta; poblacion y luces crecen en casi todas partes
+ALERT_SUSPECTS = {"mining_ha", "agri_ha", "pasture_ha", "urban_ha", "forest_loss_ha", "dry_crop_ha",
+                  "artificial_water_ha"}
+ALERT_GROWTH = 1.5   # el sospechoso debe crecer al menos 1.5 veces
+ALERT_MIN_HA = 50    # y en al menos 50 ha
+
+
+def pressure_rising(sus: pd.DataFrame, recent) -> bool:
+    """Presion humana creciendo de verdad en los ultimos 15 anos: tendencia significativa,
+    al menos 1.5 veces lo que habia al inicio de la ventana y al menos 50 ha mas."""
+    for name, g in sus.groupby("suspect"):
+        if base_name(name) not in ALERT_SUSPECTS:
+            continue
+        s = g.set_index("year")["value"].reindex(recent).fillna(0.0)
+        if s.std() == 0 or mann_kendall(s)["p"] >= ALPHA or sen_slope(recent, s) <= 0:
+            continue
+        early, late = s.iloc[:5].mean(), s.iloc[-5:].mean()
+        if late - early >= ALERT_MIN_HA and late >= ALERT_GROWTH * max(early, 1e-9):
+            return True
+    return False
 
 
 def classify_state(df, resid, sus: pd.DataFrame, base_mean: float) -> str:
@@ -293,12 +358,10 @@ def classify_state(df, resid, sus: pd.DataFrame, base_mean: float) -> str:
 
     falling = _falls(resid)
     full = df.index
-    obs_falling = (mann_kendall(df["water_ha"])["p"] < ALPHA and sen_slope(full, df["water_ha"]) < 0)
-    rising = False
-    for _, g in sus.groupby("suspect"):  # alguna presion humana creciendo en los ultimos 15 anos
-        s = g.set_index("year")["value"].reindex(recent).fillna(0.0)
-        if s.std() > 0 and mann_kendall(s)["p"] < ALPHA and sen_slope(recent, s) > 0:
-            rising = True
+    change_pct = 100 * (df["water_ha"].iloc[-5:].mean() - base_mean) / base_mean if base_mean else 0.0
+    obs_falling = (mann_kendall(df["water_ha"])["p"] < ALPHA and sen_slope(full, df["water_ha"]) < 0
+                   and change_pct <= -MIN_EFFECT_PCT)  # una caida menor al 10% no se etiqueta
+    rising = pressure_rising(sus, recent)
     if rising and falling:
         return "Huella humana"
     if falling:
@@ -308,6 +371,19 @@ def classify_state(df, resid, sus: pd.DataFrame, base_mean: float) -> str:
     if rising:
         return "Alerta temprana"
     return "Intacto"
+
+
+def data_quality(df) -> dict:
+    """Calidad de la serie de agua: coincidencia de Landsat con JRC y anos interpolados."""
+    out = {"level": "sin validar", "r_jrc": None, "interpolated_years": []}
+    if "nodata_pct" in df:
+        out["interpolated_years"] = [int(y) for y in df.index[df["nodata_pct"] > 20]]
+    if "water_ha_jrc" in df and df["water_ha_jrc"].notna().sum() > 5:
+        both = df[["water_ha", "water_ha_jrc"]].dropna()
+        r = float(both["water_ha"].corr(both["water_ha_jrc"]))
+        out["r_jrc"] = r
+        out["level"] = "alta" if r >= 0.85 else "media" if r >= 0.7 else "baja"
+    return out
 
 
 def backtest(df, baseline_end: int) -> dict:
@@ -326,6 +402,7 @@ def backtest(df, baseline_end: int) -> dict:
 
 
 def run(bodies: pd.DataFrame, series: pd.DataFrame, suspects: pd.DataFrame, baseline_end: int = 2000) -> list[dict]:
+    suspects = tag_areas(suspects)
     results = []
     for _, b in bodies.iterrows():
         ctrl = b.get("control_id")

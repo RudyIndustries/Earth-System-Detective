@@ -1,0 +1,209 @@
+[
+ {
+  "kind": "Ciudad o pueblo",
+  "name": "Yunguyo",
+  "detail": "town",
+  "lat": -16.24423,
+  "lon": -69.09255,
+  "dist_km": 35.3,
+  "osm": "https://www.openstreetmap.org/node/288565877"
+ },
+ {
+  "kind": "Ciudad o pueblo",
+  "name": "Achacachi",
+  "detail": "town",
+  "lat": -16.0439,
+  "lon": -68.68496,
+  "dist_km": 35.5,
+  "osm": "https://www.openstreetmap.org/node/795493675"
+ },
+ {
+  "kind": "Ciudad o pueblo",
+  "name": "Desaguadero",
+  "detail": "town",
+  "lat": -16.56481,
+  "lon": -69.04015,
+  "dist_km": 36.6,
+  "osm": "https://www.openstreetmap.org/node/288563196"
+ },
+ {
+  "kind": "Ciudad o pueblo",
+  "name": "Copacabana",
+  "detail": "town",
+  "lat": -16.16573,
+  "lon": -69.08544,
+  "dist_km": 38.4,
+  "osm": "https://www.openstreetmap.org/node/795662927"
+ },
+ {
+  "kind": "Industria",
+  "name": "Centro de Desarrollo Pisícola Tiquina",
+  "detail": "factory",
+  "lat": -16.2218,
+  "lon": -68.83515,
+  "dist_km": 15.4,
+  "osm": "https://www.openstreetmap.org/way/701501369"
+ },
+ {
+  "kind": "Industria",
+  "name": "Planta Conservadora",
+  "detail": "fish_processing",
+  "lat": -16.22414,
+  "lon": -68.97988,
+  "dist_km": 25.5,
+  "osm": "https://www.openstreetmap.org/way/981057331"
+ },
+ {
+  "kind": "Industria",
+  "name": "Matadero Municipal",
+  "detail": "slaughterhouse",
+  "lat": -16.59314,
+  "lon": -68.8495,
+  "dist_km": 28.0,
+  "osm": "https://www.openstreetmap.org/node/13676784758"
+ },
+ {
+  "kind": "Industria",
+  "name": "Plata de Regasificación",
+  "detail": "",
+  "lat": -16.07903,
+  "lon": -68.67262,
+  "dist_km": 32.2,
+  "osm": "https://www.openstreetmap.org/way/539034012"
+ },
+ {
+  "kind": "Industria",
+  "name": "Planta de Lácteos Achacachi",
+  "detail": "food;milk;cheese;yogurt;fruit_juice",
+  "lat": -16.0651,
+  "lon": -68.67939,
+  "dist_km": 33.4,
+  "osm": "https://www.openstreetmap.org/way/539034513"
+ },
+ {
+  "kind": "Industria",
+  "name": "Planta de Tratamiento de Aguas Residuales Achacachi",
+  "detail": "wastewater_plant",
+  "lat": -16.04347,
+  "lon": -68.69876,
+  "dist_km": 35.1,
+  "osm": "https://www.openstreetmap.org/way/758811755"
+ },
+ {
+  "kind": "Industria",
+  "name": "Planta de Lixiviación KATANANI",
+  "detail": "",
+  "lat": -16.29212,
+  "lon": -68.45132,
+  "dist_km": 35.6,
+  "osm": "https://www.openstreetmap.org/way/1373391462"
+ },
+ {
+  "kind": "Industria",
+  "name": "Matadero",
+  "detail": "slaughterhouse",
+  "lat": -16.16995,
+  "lon": -69.08861,
+  "dist_km": 38.5,
+  "osm": "https://www.openstreetmap.org/way/886029843"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "limestone",
+  "lat": -16.17342,
+  "lon": -68.72877,
+  "dist_km": 20.3,
+  "osm": "https://www.openstreetmap.org/way/738970348"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -16.19415,
+  "lon": -68.62376,
+  "dist_km": 24.0,
+  "osm": "https://www.openstreetmap.org/way/946957534"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "Cantera",
+  "detail": "",
+  "lat": -16.48389,
+  "lon": -68.58333,
+  "dist_km": 25.7,
+  "osm": "https://www.openstreetmap.org/way/148652071"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "Cantera de áridos",
+  "detail": "",
+  "lat": -16.29552,
+  "lon": -68.4529,
+  "dist_km": 35.4,
+  "osm": "https://www.openstreetmap.org/way/1332633552"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "Cantera de áridos",
+  "detail": "",
+  "lat": -16.30648,
+  "lon": -68.4453,
+  "dist_km": 36.0,
+  "osm": "https://www.openstreetmap.org/way/1332633551"
+ },
+ {
+  "kind": "Mina o cantera",
+  "name": "",
+  "detail": "",
+  "lat": -16.58305,
+  "lon": -69.01697,
+  "dist_km": 36.1,
+  "osm": "https://www.openstreetmap.org/way/1537228713"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -16.19929,
+  "lon": -68.71583,
+  "dist_km": 18.1,
+  "osm": "https://www.openstreetmap.org/node/6173378361"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -16.38621,
+  "lon": -68.59745,
+  "dist_km": 19.9,
+  "osm": "https://www.openstreetmap.org/node/5402655587"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "",
+  "detail": "",
+  "lat": -16.06576,
+  "lon": -68.76874,
+  "dist_km": 31.6,
+  "osm": "https://www.openstreetmap.org/way/741340564"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Represa",
+  "detail": "",
+  "lat": -16.64317,
+  "lon": -68.47675,
+  "dist_km": 45.8,
+  "osm": "https://www.openstreetmap.org/way/306859042"
+ },
+ {
+  "kind": "Represa o canal",
+  "name": "Embalse de Represa",
+  "detail": "",
+  "lat": -16.64324,
+  "lon": -68.47547,
+  "dist_km": 46.0,
+  "osm": "https://www.openstreetmap.org/way/306858997"
+ }
+]

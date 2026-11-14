@@ -59,11 +59,13 @@ DATASETS = {
     "agua": "Landsat 5/7/8/9 C2 L2 (MNDWI epoca seca); validacion JRC/GSW1_4/YearlyHistory",
     "clima": "NASA POWER PRECTOTCORR y T2M promediados en la cuenca de aporte (HydroBASINS nivel 8)",
     "el_nino": "NOAA CPC ONI",
-    "sospechosos": "MapBiomas Bolivia col. 2, Hansen GFC 2025 v1.13, MODIS MCD64A1, DMSP-OLS + VIIRS V21/V22, "
-                   "WorldPop, Landsat NDVI",
+    "sospechosos": "En dos escalas, cerca (subcuenca local) y cuenca de aporte: MapBiomas Bolivia col. 2, Hansen GFC 2025 v1.13, MODIS MCD64A1, "
+                   "DMSP-OLS + VIIRS V21/V22, WorldPop, Landsat NDVI",
     "agua_subterranea": "NASA GRACE/GRACE-FO MASCON",
 }
 ALERT_STATES = {"Huella humana", "Alerta temprana"}
+# la huella del codigo cubre todo lo que produce o transforma los datos, no solo el motor
+CODE_FILES = ["engine.py", "gee_extract.py", "nasa_power.py", "upstream.py", "suspects_upstream.py", "twins.py"]
 
 
 def connect(data_dir: Path) -> sqlite3.Connection:
@@ -95,7 +97,7 @@ def record_run(data_dir: Path, results: list[dict], baseline_end: int, note: str
         "VALUES (?,?,?,?,?,?,?)",
         (now, note, baseline_end, json.dumps(params), json.dumps(DATASETS, ensure_ascii=False),
          _sha([data_dir / f for f in ("bodies.csv", "series.csv", "suspects.csv")]),
-         _sha([ROOT / "uma" / "engine.py"])))
+         _sha([ROOT / "uma" / f for f in CODE_FILES])))
     run_id = cur.lastrowid
     for r in results:
         con.execute("INSERT INTO verdicts VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", (
