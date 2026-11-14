@@ -6,7 +6,7 @@
 Por cada cuerpo de agua vigilado cuenta los focos de calor FIRMS (MODIS y VIIRS, pixeles de 1 km) de los
 ultimos 7 dias, cerca (subcuenca local) y en toda la cuenca de aporte, y los compara con la misma semana
 de los 5 anos anteriores. Hay alerta operativa si:
-  - el cuerpo de agua ya esta en riesgo (huella humana, alerta temprana o sin explicar) y
+  - el cuerpo de agua ya esta en riesgo (huella humana, alerta temprana o incalculable) y
   - hay al menos MIN_FOCOS focos y al menos el doble de lo normal para esa semana.
 
 Guarda el resultado en data/real/alertas_semanales.json (lo muestra la app) y en la auditoria
@@ -36,7 +36,7 @@ from uma.suspects_upstream import basin_geometry
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data" / "real"
-RISK = {"Huella humana", "Alerta temprana", "Sin explicar"}
+RISK = {"Huella humana", "Alerta temprana", "Incalculable"}
 MIN_FOCOS = 5
 FACTOR = 2.0
 BASE_YEARS = 5

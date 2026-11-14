@@ -22,6 +22,9 @@ if src.name == "sample" and not (src / "series.csv").exists():
     synthetic.build(src)
 
 bodies = pd.read_csv(src / "bodies.csv", dtype={"control_id": str}).fillna({"control_id": ""})
+if (src / "basins.csv").exists():  # que cuerpos de agua reciben agua por rio de otro de la lista
+    up = pd.read_csv(src / "basins.csv", dtype={"upstream_bodies": str}).fillna("")[["body_id", "upstream_bodies"]]
+    bodies = bodies.merge(up, on="body_id", how="left").fillna({"upstream_bodies": ""})
 series = pd.read_csv(src / "series.csv")
 suspects = pd.read_csv(src / "suspects.csv") if (src / "suspects.csv").exists() else \
     pd.DataFrame(columns=["body_id", "year", "suspect", "value"])
@@ -32,10 +35,14 @@ results = engine.run(bodies, series, suspects, baseline_end)
 from uma import audit
 run_id = audit.record_run(src, results, baseline_end, note)
 
+def yn(v):
+    return "n/e" if v is None else ("si" if v else "no")
+
+
 for r in results:
     t = r["tests"]
     print(f"{r['body_id']:8} {r['state']:16} confianza {r['confidence']:5} "
-          f"clima={'si' if t['clima']['pass'] else 'no'} control={'si' if t['control']['pass'] else 'no'} "
-          f"coincidencia={'si' if t['coincidencia']['pass'] else 'no'}  "
+          f"clima={yn(t['clima']['pass'])} control={yn(t['control']['pass'])} "
+          f"coincidencia={yn(t['coincidencia']['pass'])}  "
           f"cambio {r['trend']['change_pct']:+.0f}%  sospechoso: {r['suspects'][0]['label'] if r['suspects'] else '-'}")
 print(f"\nEscrito {src / 'results.json'}")

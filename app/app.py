@@ -28,19 +28,20 @@ CTX = DATA / "context"
 STATE_COLORS = {
     "Huella humana": [255, 23, 68],
     "Alerta temprana": [213, 0, 249],
-    "Sin explicar": [255, 214, 0],
+    "Incalculable": [255, 214, 0],
     "Causa climatica": [255, 145, 0],
     "Intacto": [0, 230, 118],
 }
 # icono Lucide de cada estado
-STATE_LUCIDE = {"Huella humana": "footprints", "Alerta temprana": "siren", "Sin explicar": "circle-help",
+STATE_LUCIDE = {"Huella humana": "footprints", "Alerta temprana": "siren", "Incalculable": "circle-help",
                 "Causa climatica": "cloud-sun-rain", "Intacto": "shield-check"}
-SEVERITY = {"Huella humana": 0, "Alerta temprana": 1, "Sin explicar": 2, "Causa climatica": 3, "Intacto": 4}
+SEVERITY = {"Huella humana": 0, "Alerta temprana": 1, "Incalculable": 2, "Causa climatica": 3, "Intacto": 4}
 STATE_ACTION = {
     "Huella humana": "Prevenir: controlar la actividad sospechosa, proteger la cuenca, restaurar.",
     "Causa climatica": "Adaptarse: cosecha de agua, reservorios, planes de sequia.",
     "Alerta temprana": "Actuar ya, cuando proteger todavia es barato.",
-    "Sin explicar": "Revisar: el agua cae y el clima no alcanza a explicarlo, pero no hay pruebas para acusar.",
+    "Incalculable": "Revisar: el agua cae, pero con los datos disponibles no se puede calcular la causa con "
+                    "confianza. Los motivos explican que falta.",
     "Intacto": "Seguimiento.",
 }
 VIEWS = ["Mapa de alertas", "Monitoreo", "Ficha del cuerpo de agua", "Vigilancia semanal"]
@@ -66,6 +67,8 @@ st.markdown("""
 .h {display:flex; align-items:center; gap:10px; margin:.4rem 0 .6rem 0;}
 .h2 {font-size:1.75rem; font-weight:800;} .h3 {font-size:1.3rem; font-weight:800;}
 .test {display:flex; align-items:flex-start; gap:10px; margin:.35rem 0;}
+.why {border-left:4px solid #ffd600; background:rgba(255,214,0,.08); padding:8px 14px; border-radius:6px; margin:6px 0 10px 0;}
+.why ul {margin:4px 0 0 0; padding-left:18px;}
 .legend {display:flex; flex-wrap:wrap; gap:14px; align-items:center; font-size:1rem; margin:6px 0 2px 0;}
 .legend i {display:inline-block; width:18px; height:18px; border-radius:50%; margin-right:6px; vertical-align:-3px;
            box-shadow:0 0 8px currentColor;}
@@ -93,6 +96,9 @@ results = json.loads(results_path.read_text(encoding="utf-8"))
 by_id = {r["body_id"]: r for r in results}
 controls = {r["control_id"] for r in results if r.get("control_id")}
 national = json.loads((NATDIR / "results.json").read_text(encoding="utf-8")) if (NATDIR / "results.json").exists() else []
+for _n in national:  # resultados de una version anterior del motor (por ejemplo "Sin explicar")
+    if _n["state"] not in STATE_COLORS:
+        _n["state"] = "Incalculable"
 artificial_pts = (json.loads((NATDIR / "agua_artificial.json").read_text(encoding="utf-8"))
                   if (NATDIR / "agua_artificial.json").exists() else None)
 weekly = json.loads((DATA / "alertas_semanales.json").read_text(encoding="utf-8")) \
@@ -268,6 +274,9 @@ def view_map():
             m3.markdown("<div style='font-size:.875rem;opacity:.8'>Sospechoso principal</div>"
                         f"<div style='font-size:1.15rem;font-weight:800'>{top}</div>", unsafe_allow_html=True)
             st.info(STATE_ACTION[r["state"]])
+            if r.get("why"):
+                st.markdown("<div class='why'><ul>" + "".join(f"<li>{w}</li>" for w in r["why"][:3]) + "</ul></div>",
+                            unsafe_allow_html=True)
             b1, b2 = st.columns(2)
             if b1.button("Abrir ficha completa", type="primary", use_container_width=True, key="btn_open"):
                 go_detail(r["body_id"])
@@ -408,6 +417,11 @@ def view_detail():
                 f"<div style='font-size:1.25rem;font-weight:800'>{r['suspects'][0]['label'] if r['suspects'] else '-'}</div>",
                 unsafe_allow_html=True)
     st.info(STATE_ACTION[r["state"]])
+    if r.get("why"):
+        items = "".join(f"<li>{w}</li>" for w in r["why"])
+        title = "Por que es incalculable" if r["state"] == "Incalculable" else "Lo que hay que saber de este veredicto"
+        st.markdown(f"<div class='why'><div class='h' style='margin:0 0 4px 0'>{ic.svg('triangle-alert', '#ffd600', 20, 2.4)}"
+                    f"<b>{title}</b></div><ul>{items}</ul></div>", unsafe_allow_html=True)
     q = r.get("data_quality") or {}
     if q.get("level") == "baja":
         st.warning(f"Calidad de datos baja: la serie de agua de Landsat coincide poco con JRC (r = {q['r_jrc']:.2f}). "
@@ -476,7 +490,8 @@ def view_detail():
         with g2:
             st.markdown("#### De donde viene el cambio")
             dec = pd.DataFrame([{"causa": k, "ha": v} for k, v in r["decomposition_ha"].items()])
-            colors = {"Sequia y calor": "#ff9100", "El Nino": "#ffd600", "Huella humana": "#ff1744", "Sin explicar": "#9e9e9e"}
+            colors = {"Lluvia menos evaporacion": "#ff9100", "El Nino": "#ffd600", "Huella humana": "#ff1744",
+                      "Incalculable": "#9e9e9e"}
             st.altair_chart(alt.Chart(dec).mark_bar(size=34).encode(
                 y=alt.Y("causa:N", sort=list(r["decomposition_ha"].keys()), title=None),
                 x=alt.X("ha:Q", title="Hectareas ganadas (+) o perdidas (-)"),
@@ -524,7 +539,12 @@ def view_detail():
         names = {"clima": "1. Lo que el clima no explica", "control": "2. Gemela de control",
                  "coincidencia": "3. Coincidencia en el tiempo"}
         for k, t in r["tests"].items():
-            mark = ic.svg("circle-check", "#00e676", 22, 2.6) if t["pass"] else ic.svg("circle-dashed", "#9e9e9e", 22, 2.2)
+            if t["pass"] is None:
+                mark = ic.svg("circle-help", "#ffd600", 22, 2.4)
+            elif t["pass"]:
+                mark = ic.svg("circle-check", "#00e676", 22, 2.6)
+            else:
+                mark = ic.svg("circle-dashed", "#9e9e9e", 22, 2.2)
             st.markdown(f"<div class='test'>{mark}<div><b>{names[k]}</b> — {t['detail']}</div></div>",
                         unsafe_allow_html=True)
         if r["suspects"]:

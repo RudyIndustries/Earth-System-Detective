@@ -146,9 +146,18 @@ r < 0.7), la confianza baja un nivel y la app lo advierte.
 Descomposición: cambio entre el promedio del periodo base y el de los últimos 5 años (el mismo % de la tarjeta),
 repartido en sequía y calor, El Niño, huella humana (solo con 2 o más pruebas) y sin explicar. Las partes suman el total.
 
-Estados: **Huella humana** (2 o más pruebas), **Causa climática** (cae al menos 10% y el clima explica al menos el
-60% de la pérdida), **Alerta temprana** (presión sube, agua aún estable), **Sin explicar** (cae y el clima no
-alcanza a explicarlo, sin pruebas suficientes para acusar), **Intacto**.
+Estados: **Huella humana** (un sospechoso directo pasa la prueba de coincidencia y al menos otra prueba pasa),
+**Causa climática** (cae al menos 10%, el modelo de clima es confiable y explica al menos el 60%), **Alerta temprana**
+(presión de uso del suelo creciendo y agua aún estable), **Incalculable** (el agua cae pero con los datos disponibles
+no se puede calcular la causa con confianza; cada laguna lista sus motivos) e **Intacto**.
+
+Modelo de clima: agua ~ balance de dos años (anomalía de lluvia menos anomalía de evaporación potencial de ERA5-Land)
++ El Niño, entrenado en 1985-2000. Es confiable si es significativo (p < 0.05) y si más balance da más agua; si no,
+la prueba del clima queda "no evaluable" y las otras usan el agua observada (la gemela controla el clima).
+La gemela solo vale si su propia agua cambió menos de 25%. Población, luces nocturnas y ciudad de toda la cuenca son
+indicadores indirectos: se muestran, pero no pueden ser el culpable. Pérdidas de 10-15% dan confianza baja.
+Sospechosos nuevos: agua consumida por cultivos en época seca (MODIS MOD16, NASA) y déficit de agua en el cauce del
+Desaguadero respecto de lo esperado por el nivel del Titicaca y la lluvia (`uma/hydro_extra.py`).
 
 Áreas: el agua se mide en el círculo de la laguna; el clima, en la cuenca de aporte completa; los sospechosos, en dos
 escalas que se auditan por separado: "cerca" (subcuenca local) y "cuenca" (cuenca de aporte completa)

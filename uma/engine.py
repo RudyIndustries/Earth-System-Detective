@@ -24,8 +24,16 @@ import statsmodels.api as sm
 from scipy import stats
 
 ALPHA = 0.05
-CLIMATE_VARS = ["precip_mm", "precip_lag1", "temp_c", "oni"]
-CLIMATE_GROUPS = {"Sequia y calor": ["precip_mm", "precip_lag1", "temp_c"], "El Nino": ["oni"]}
+# El modelo de clima usa el balance de agua de dos anos (anomalia de lluvia menos anomalia de evaporacion
+# potencial, este ano y el anterior) y El Nino: dos variables con sentido fisico en lugar de cuatro, porque
+# el periodo base tiene solo 16 anos. Se usan anomalias estandarizadas porque la evaporacion de ERA5-Land
+# esta sesgada en los llanos (valores de 5000-6000 mm) y asi el sesgo del promedio no pesa.
+CLIMATE_VARS = ["water_balance", "oni"]
+CLIMATE_GROUPS = {"Lluvia menos evaporacion": ["water_balance"], "El Nino": ["oni"]}
+CLIMATE_P_MAX = 0.05     # el modelo de clima debe ser significativo (prueba F)
+STATE_UNKNOWN = "Incalculable"
+TWIN_MAX_CHANGE = 25    # una gemela que cambio mas del 25% no sirve de referencia
+SMALL_EFFECT_PCT = 15   # perdidas de 10-15%: veredicto fragil, confianza baja
 MAX_LAG_YEARS = 5
 MIN_EFFECT_PCT = 10  # una perdida menor al 10% de la media base no se considera relevante
 CLIMATE_SHARE_MIN = 0.6  # para decir "causa climatica", el clima debe explicar al menos el 60% de la perdida
@@ -43,6 +51,8 @@ SUSPECT_LABELS = {
     "agri_ha": "Agricultura",
     "night_lights": "Luces nocturnas (ciudad e industria)",
     "population": "Poblacion",
+    "crop_water_hm3": "Agua consumida por cultivos",
+    "desaguadero_deficit_idx": "Menos agua por el Desaguadero (posible desvio)",
 }
 
 
@@ -108,28 +118,47 @@ class ClimateFit:
     r2: float
     expected: pd.Series
     contributions: dict[str, pd.Series]
+    reliable: bool = False
+    info: dict | None = None
+
+
+def _z(x: pd.Series) -> pd.Series:
+    sd = x.std()
+    return (x - x.mean()) / sd if sd and sd > 0 else x * 0
 
 
 def _prep(df: pd.DataFrame) -> pd.DataFrame:
     df = df.sort_values("year").copy()
     df["precip_lag1"] = df["precip_mm"].shift(1).bfill()
+    if "pet_mm" in df and df["pet_mm"].notna().sum() > 10:
+        wb = _z(df["precip_mm"]) - _z(df["pet_mm"].interpolate(limit_direction="both"))
+    else:  # sin evaporacion potencial: solo lluvia
+        wb = _z(df["precip_mm"])
+    df["water_balance"] = wb + wb.shift(1).bfill()
     return df.set_index("year")
 
 
 def fit_climate(df: pd.DataFrame, baseline_end: int) -> ClimateFit:
-    """Ajusta agua ~ lluvia + lluvia(t-1) + temperatura + ONI solo en el periodo base.
+    """Ajusta agua ~ balance de agua (2 anos) + ONI solo en el periodo base.
 
-    Entrenar solo en el periodo base evita que el modelo de clima absorba la tendencia
-    humana posterior (es la variante 'entrenar hasta X' del documento).
+    Entrenar solo en el periodo base evita que el modelo de clima absorba la tendencia humana posterior.
+    El modelo es confiable si es significativo (p < 0.05) y si mas balance de agua da mas agua (efecto
+    positivo, p < 0.10). Si no lo es, no se usa para atribuir: el agua esperada queda en el promedio base.
     """
     base = df.loc[:baseline_end]
     X = sm.add_constant(base[CLIMATE_VARS])
     model = sm.OLS(base["water_ha"], X).fit()
-    Xall = sm.add_constant(df[CLIMATE_VARS], has_constant="add")
-    expected = model.predict(Xall)
+    coef, pc = float(model.params["water_balance"]), float(model.pvalues["water_balance"])
+    reliable = bool(model.f_pvalue < CLIMATE_P_MAX and coef > 0 and pc < 0.10)
+    info = {"r2": float(model.rsquared), "f_p": float(model.f_pvalue), "coef_balance": coef, "p_balance": pc}
     means = base[CLIMATE_VARS].mean()
-    contributions = {v: model.params[v] * (df[v] - means[v]) for v in CLIMATE_VARS}
-    return ClimateFit(model, baseline_end, float(model.rsquared), expected, contributions)
+    if reliable:
+        expected = model.predict(sm.add_constant(df[CLIMATE_VARS], has_constant="add"))
+        contributions = {v: model.params[v] * (df[v] - means[v]) for v in CLIMATE_VARS}
+    else:
+        expected = pd.Series(float(base["water_ha"].mean()), index=df.index)
+        contributions = {v: pd.Series(0.0, index=df.index) for v in CLIMATE_VARS}
+    return ClimateFit(model, baseline_end, float(model.rsquared), expected, contributions, reliable, info)
 
 
 def _residual(df: pd.DataFrame, baseline_end: int) -> tuple[ClimateFit, pd.Series]:
@@ -139,7 +168,7 @@ def _residual(df: pd.DataFrame, baseline_end: int) -> tuple[ClimateFit, pd.Serie
 
 # ---------------------------------------------------------------- analisis
 def analyze_body(body_id: str, series: pd.DataFrame, suspects: pd.DataFrame,
-                 control_id: str | None, baseline_end: int) -> dict:
+                 control_id: str | None, baseline_end: int, upstream: str = "") -> dict:
     df = _prep(series[series.body_id == body_id])
     years = df.index.values
     span = years[-1] - years[0]
@@ -156,13 +185,19 @@ def analyze_body(body_id: str, series: pd.DataFrame, suspects: pd.DataFrame,
     # Prueba 1: el clima no alcanza a explicar la perdida
     resid_pct = 100 * resid_slope * span / base_mean if base_mean else 0.0
     t1 = resid_mk["p"] < ALPHA and resid_pct <= -MIN_EFFECT_PCT
+    ci = fit.info
     test1 = {
-        "pass": bool(t1),
+        "pass": bool(t1) if fit.reliable else None,
         "detail": f"Lo que el clima no explica tiene una tendencia de {resid_pct:+.0f}% de la media base en {span} anos "
                   f"(p={resid_mk['p']:.3f}; hace falta p<0.05 y al menos -{MIN_EFFECT_PCT}%). "
                   f"R2 del modelo de clima = {fit.r2:.2f}.",
         "p": resid_mk["p"],
     }
+    if not fit.reliable:
+        test1["detail"] = (f"No evaluable: el modelo lluvia-evaporacion no explica el agua de esta laguna "
+                           f"(p={ci['f_p']:.2f}, R2={ci['r2']:.2f}"
+                           + (", y sale con efecto al reves" if ci["coef_balance"] <= 0 else "") +
+                           "). Las otras dos pruebas usan el agua observada; la gemela controla el clima.")
 
     # Prueba 2: la gemela de control no cae igual
     test2 = {"pass": False, "detail": "Sin gemela de control asignada.", "p": None}
@@ -179,14 +214,22 @@ def analyze_body(body_id: str, series: pd.DataFrame, suspects: pd.DataFrame,
             "detail": f"Frente a su gemela pierde {dslope*span:+.1f} puntos % extra (p={dmk['p']:.3f}).",
             "p": dmk["p"],
         }
+        # una gemela solo sirve de referencia si se mantuvo estable: si gano o perdio mas del 25% de su agua,
+        # la comparacion no es valida (por ejemplo, un lago alimentado por deshielo que crece)
+        twin_change = 100 * (cdf["water_ha"].iloc[-5:].mean() - cbase) / cbase if cbase else 0.0
+        if abs(twin_change) > TWIN_MAX_CHANGE:
+            test2 = {"pass": None, "p": dmk["p"],
+                     "detail": f"No evaluable: la gemela no es estable (cambio su agua {twin_change:+.0f}%), "
+                               "asi que no sirve de referencia."}
 
     # Auditoria de sospechosos + Prueba 3 (coincidencia en el tiempo)
     cp_idx, cp_p = pettitt(resid.values)
     resid_break = int(years[cp_idx]) if cp_p < 0.1 else None
     ranked = audit_suspects(df, resid, suspects[suspects.body_id == body_id], resid_break, baseline_end)
-    top = ranked[0] if ranked else None
-    # pasa solo si el sospechoso crece antes del quiebre Y se relaciona en el sentido esperado (mas presion, menos agua)
-    t3 = bool(top and top["precedes"] and top["p"] < ALPHA and top["rho"] < 0)
+    direct = [x for x in ranked if not x["indirect"] and x["big_enough"]]
+    top = direct[0] if direct else (ranked[0] if ranked else None)
+    # pasa solo con un sospechoso directo que crece antes de la caida y se relaciona con ella
+    t3 = bool(top and not top["indirect"] and top["precedes"] and top["p"] < ALPHA and top["rho"] < 0)
     test3 = {
         "pass": t3,
         "detail": (f"El residuo cambia en {resid_break}; {top['label'].lower()} empieza a crecer en {top['onset']}."
@@ -194,7 +237,7 @@ def analyze_body(body_id: str, series: pd.DataFrame, suspects: pd.DataFrame,
         "p": top["p"] if top else None,
     }
 
-    n_pass = sum(t["pass"] for t in (test1, test2, test3))
+    n_pass = sum(bool(t["pass"]) for t in (test1, test2, test3))
     confidence = {3: "Alta", 2: "Media"}.get(n_pass, "Baja")
 
     # Descomposicion del cambio: promedio de los ultimos 5 anos menos el promedio del periodo base.
@@ -206,22 +249,62 @@ def analyze_body(body_id: str, series: pd.DataFrame, suspects: pd.DataFrame,
         c = sum(fit.contributions[v] for v in vs)
         groups[g] = float(c.loc[last].mean() - c.loc[base_idx].mean())
     resid_change = float(resid.loc[last].mean() - resid.loc[base_idx].mean())
-    human = resid_change if n_pass >= 2 else 0.0
-    decomposition = {**groups, "Huella humana": human, "Sin explicar": resid_change - human}
+    human = resid_change if (test3["pass"] and n_pass >= 2) else 0.0
+    decomposition = {**groups, "Huella humana": human, STATE_UNKNOWN: resid_change - human}
     clim_change = sum(groups.values())
-    climate_share = clim_change / total_change if total_change < 0 else None
+    climate_share = clim_change / total_change if (total_change < 0 and fit.reliable) else None
 
-    state = classify_state(df, resid, suspects[suspects.body_id == body_id], base_mean)
-    if n_pass >= 2:            # las pruebas mandan: con 2 o 3 la perdida no la explica el clima
+    change_pct = 100 * total_change / base_mean if base_mean else 0.0
+    falls = change_pct <= -MIN_EFFECT_PCT
+    rising = pressure_rising(suspects[suspects.body_id == body_id], df.index[-15:])
+    if test3["pass"] and n_pass >= 2:
         state = "Huella humana"
-    elif state == "Huella humana":
-        state = "Sin explicar"  # presion y caida sin pruebas suficientes: no se acusa
-    elif state == "Causa climatica" and (climate_share is None or climate_share < CLIMATE_SHARE_MIN):
-        state = "Sin explicar"  # cae, pero el clima explica menos de la mayor parte: no se puede decir "climatica"
+    elif falls and fit.reliable and climate_share is not None and climate_share >= CLIMATE_SHARE_MIN:
+        state = "Causa climatica"
+    elif falls:
+        state = STATE_UNKNOWN
+    elif rising:
+        state = "Alerta temprana"
+    else:
+        state = "Intacto"
 
     quality = data_quality(df)
     if quality["level"] == "baja" and n_pass >= 2:
         confidence = {"Alta": "Media", "Media": "Baja"}[confidence]  # datos dudosos: se baja un nivel
+
+    # por que: motivos legibles del veredicto (sobre todo cuando es incalculable)
+    why = []
+    if not fit.reliable:
+        why.append(f"El efecto del clima no se puede calcular con confianza: el modelo lluvia-evaporacion no es "
+                   f"significativo para esta laguna (p={ci['f_p']:.2f}, R2={ci['r2']:.2f}).")
+    elif climate_share is not None and climate_share < CLIMATE_SHARE_MIN and state == STATE_UNKNOWN:
+        why.append(f"El clima explica solo el {100 * climate_share:.0f}% de la perdida.")
+    if test2["pass"] is None and "gemela" in test2["detail"]:
+        why.append(test2["detail"].replace("No evaluable: ", "").capitalize())
+    if test2["pass"] is False:
+        why.append("Sin gemela de control." if test2["p"] is None else
+                   "La laguna no pierde mas que su gemela de control: no se puede descartar un efecto regional.")
+    if not test3["pass"]:
+        if n_pass >= 2:
+            why.append("El clima no la explica y la gemela no la sufre, pero ningun sospechoso medido la explica mas "
+                       "alla del paso del tiempo: puede haber una causa humana no medida (extraccion, desvio).")
+        else:
+            why.append("Ningun sospechoso directo crecio antes de la caida y se relaciona con ella mas alla del "
+                       "paso del tiempo.")
+    if test3["pass"] and state == STATE_UNKNOWN:
+        why.append(f"Pista: {top['label'].lower()} crece antes de la caida y se relaciona con ella, pero falta una "
+                   "segunda prueba (clima o gemela) para afirmar que es la causa.")
+    if quality["level"] == "baja":
+        why.append(f"La serie de agua es de calidad baja (Landsat contra JRC r={quality['r_jrc']:.2f}).")
+    if upstream:
+        why.append(f"Recibe agua por rio desde {upstream}: el caudal solo se estima con satelite (agua en el cauce), "
+                   "sin estaciones de caudal en el analisis.")
+    if state == "Huella humana" and not fit.reliable:
+        why.insert(0, "Confianza limitada: el clima no se pudo medir y el veredicto se apoya en la gemela y la "
+                      "coincidencia en el tiempo.")
+    if falls and change_pct > -SMALL_EFFECT_PCT:
+        confidence = "Baja"  # un efecto apenas sobre el umbral es fragil
+        why.append(f"La perdida es pequena ({change_pct:+.0f}%), cerca del umbral del 10%: el veredicto es fragil.")
 
     return {
         "body_id": body_id,
@@ -236,6 +319,9 @@ def analyze_body(body_id: str, series: pd.DataFrame, suspects: pd.DataFrame,
         "climate_r2": fit.r2,
         "tests": {"clima": test1, "control": test2, "coincidencia": test3},
         "climate_share": climate_share,
+        "climate_reliable": fit.reliable,
+        "climate_fit": ci,
+        "why": why,
         "data_quality": quality,
         "n_pass": n_pass,
         "confidence": confidence,
@@ -284,10 +370,24 @@ def tag_areas(sus: pd.DataFrame) -> pd.DataFrame:
     return sus
 
 
-CONTEXT_ONLY = {"natural_water_ha"}  # series de contexto que no son sospechosos
+CONTEXT_ONLY = {"natural_water_ha", "desaguadero_water_ha"}  # series de contexto que no son sospechosos
 
 
 FLOWS = {"forest_loss_ha", "burned_ha"}  # hectareas por ano: se acumulan
+# Indicadores indirectos: crecen en casi todas partes (poblacion, luz, ciudad de toda la cuenca) y se
+# correlacionan con cualquier caida. Se muestran, pero no pueden ser el culpable ni pasar la prueba 3 solos.
+INDIRECT = {"population", "night_lights"}
+
+
+def is_indirect(name: str) -> bool:
+    base, _, area = name.partition("@")
+    return base in INDIRECT or (base == "urban_ha" and area == "cuenca")
+
+
+def _detrend(x: pd.Series) -> pd.Series:
+    t = np.arange(len(x), dtype=float)
+    b = np.polyfit(t, x.values.astype(float), 1)
+    return pd.Series(x.values - np.polyval(b, t), index=x.index)
 MIN_SHARE_OF_LOSS = 0.10   # un sospechoso de area debe crecer al menos el 10% del agua perdida
 PRE_GROWTH = 1.5           # y, para anteceder, haber crecido 1.5 veces antes del quiebre del agua
 
@@ -317,6 +417,9 @@ def audit_suspects(df, resid, sus: pd.DataFrame, resid_break: int | None, baseli
         onset = int(df.index[idx])
         rho, p = stats.spearmanr(pressure, resid)
         r2 = float(rho**2)
+        # relacion mas alla del paso del tiempo: correlacion entre las series sin su tendencia lineal.
+        # Si dos cosas solo crecen y bajan "con los anos", aqui no aparecen relacionadas.
+        rho_dt, p_dt = stats.spearmanr(_detrend(pressure), _detrend(resid))
         early = float(level.iloc[:5].mean())
         growth = float(level.iloc[-5:].mean() - early)
         is_area = bn.endswith("_ha")
@@ -328,9 +431,12 @@ def audit_suspects(df, resid, sus: pd.DataFrame, resid_break: int | None, baseli
             pre = float(level.loc[resid_break - 1:resid_break + 1].mean())
             min_abs = MIN_SHARE_OF_LOSS * water_lost if is_area else 0.0
             precedes = pre >= PRE_GROWTH * max(early, 1e-9) and (pre - early) >= min_abs
-        relation = bool(p < ALPHA and rho < 0 and r2 > 0.3)
+        relation = bool(p < ALPHA and rho < 0 and r2 > 0.3)  # rho_dt (sin tendencia) se reporta como dato
+        indirect = is_indirect(name)
         hits = sum([precedes, rising, relation])
         evidence = {3: "fuerte", 2: "media"}.get(hits, "debil") if big_enough else "debil"
+        if indirect and evidence == "fuerte":
+            evidence = "media"  # un indicador indirecto nunca es evidencia fuerte
         out.append({
             "suspect": name,
             "label": suspect_label(name),
@@ -343,8 +449,11 @@ def audit_suspects(df, resid, sus: pd.DataFrame, resid_break: int | None, baseli
             "growth": round(growth, 1),
             "share_of_loss": round(growth / water_lost, 2) if is_area and water_lost else None,
             "big_enough": bool(big_enough),
+            "indirect": bool(indirect),
+            "rho_detrended": float(rho_dt),
+            "relation_beyond_trend": bool(p_dt < 0.10 and rho_dt < 0),
             "evidence": evidence,
-            "score": (hits if big_enough else 0) + r2,
+            "score": (hits if big_enough else 0) + r2 - (2 if indirect else 0),
         })
     out.sort(key=lambda d: d["score"], reverse=True)
     # sospechosos que crecen juntos: se reportan como inseparables
@@ -374,39 +483,6 @@ def pressure_rising(sus: pd.DataFrame, recent) -> bool:
         if late - early >= ALERT_MIN_HA and late >= ALERT_GROWTH * max(early, 1e-9):
             return True
     return False
-
-
-def classify_state(df, resid, sus: pd.DataFrame, base_mean: float) -> str:
-    """Estados segun la presion humana, el agua observada y el agua sin efecto climatico.
-
-    Huella humana   presion sube, residuo cae
-    Causa climatica el agua observada cae pero el residuo no
-    Alerta temprana presion sube, residuo aun estable
-    Sin explicar    residuo cae sin presion medida (revisar sospechosos no medidos)
-    Intacto         nada de lo anterior
-    """
-    recent = df.index[-15:]
-
-    def _falls(s):
-        slope = sen_slope(recent, s.loc[recent])
-        big = base_mean and 100 * slope * len(recent) / base_mean <= -MIN_EFFECT_PCT
-        return mann_kendall(s.loc[recent])["p"] < ALPHA and bool(big)
-
-    falling = _falls(resid)
-    full = df.index
-    change_pct = 100 * (df["water_ha"].iloc[-5:].mean() - base_mean) / base_mean if base_mean else 0.0
-    obs_falling = (mann_kendall(df["water_ha"])["p"] < ALPHA and sen_slope(full, df["water_ha"]) < 0
-                   and change_pct <= -MIN_EFFECT_PCT)  # una caida menor al 10% no se etiqueta
-    rising = pressure_rising(sus, recent)
-    if rising and falling:
-        return "Huella humana"
-    if falling:
-        return "Sin explicar"
-    if obs_falling:
-        return "Causa climatica"
-    if rising:
-        return "Alerta temprana"
-    return "Intacto"
 
 
 def data_quality(df) -> dict:
@@ -443,7 +519,9 @@ def run(bodies: pd.DataFrame, series: pd.DataFrame, suspects: pd.DataFrame, base
     for _, b in bodies.iterrows():
         ctrl = b.get("control_id")
         ctrl = ctrl if isinstance(ctrl, str) and ctrl else None
-        r = analyze_body(b.body_id, series, suspects, ctrl, baseline_end)
+        up = b.get("upstream_bodies", "")
+        up = up if isinstance(up, str) else ""
+        r = analyze_body(b.body_id, series, suspects, ctrl, baseline_end, up)
         r.update({"name": b["name"], "lat": float(b.lat), "lon": float(b.lon), "kind": b.kind,
                   "department": b.get("department", ""), "control_id": ctrl})
         results.append(r)
