@@ -22,7 +22,11 @@ y audita qué actividad humana es la sospechosa.
 | `uma/audit.py` | P2 Modelo | Auditoría en SQLite (`data/real/uma.db`): corridas, veredictos, alertas, revisiones |
 | `uma/synthetic.py` | P2/P3 | Datos de prueba ficticios con el mismo formato |
 | `run_engine.py` | P2 | CSV → `results.json` + registro de auditoría |
-| `app/app.py`, `app/map3d.py` | P3 Interfaz | Streamlit: mapa 3D, alertas, tarjeta, antes/después, alrededores, historial |
+| `app/app.py` | P3 Interfaz | Entrada de Streamlit: tema, navegación superior y despacho de vistas |
+| `app/theme.py`, `app/ui.py` | P3 Interfaz | Paleta, estilos, partículas de fondo; tarjetas y gráficos SVG animados |
+| `app/data.py`, `app/nav.py` | P3 Interfaz | Carga de datos con caché; navegación entre vistas |
+| `app/views/` | P3 Interfaz | Panorama (tablero y vistas agregadas), Mapa 3D, Monitoreo, Ficha y Vigilancia |
+| `app/map3d.py`, `app/icons.py` | P3 Interfaz | Capas del mapa 3D y comparador; iconos Lucide (`app/icons/`, ISC) |
 | `gee/extraer_series.py` | P1 Datos | Cómo correr lo mismo desde Google Colab |
 
 ## Arranque

@@ -60,10 +60,10 @@ def ee_ready() -> bool:
     return _EE_OK
 
 
-NATURAL_HEX = "0d2f8a"      # agua natural: azul oscuro
-ARTIFICIAL_HEX = "00f5ff"   # agua artificial: celeste neon
-NATURAL_RGB = [13, 47, 138]
-ARTIFICIAL_RGB = [0, 245, 255]
+NATURAL_HEX = "1e40af"      # agua natural: azul profundo (theme.NATURAL)
+ARTIFICIAL_HEX = "22e5ff"   # agua artificial: celeste neon (theme.ARTIFICIAL)
+NATURAL_RGB = [30, 64, 175]
+ARTIFICIAL_RGB = [34, 229, 255]
 
 
 @lru_cache(maxsize=64)
