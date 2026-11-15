@@ -75,6 +75,7 @@ interface NasaResponse {
     granule: { date?: string; title: string; cloudPct: number | null } | null }[];
   earthEngine: boolean;
 }
+type Catalog = NasaResponse['catalog'];
 interface EarthComparison {
   status: DataState;
   month: string;
@@ -86,6 +87,18 @@ interface RecentFiresData {
   lastDetection: string | null; lakes: { id: string; name: string; count: number; lastDetection: string | null }[];
 }
 
+function CatalogList({ entries }: { entries: Catalog }) {
+  return <div className="satellite-list">
+    {entries.map(({ id, name, purpose, status, granule, earthdata }) => <article key={id}>
+      <div><strong>{name}</strong><p>{purpose}</p></div>
+      <div>{granule?.date ? <><time dateTime={granule.date}>{displayDate(granule.date)}</time>
+        {granule.cloudPct != null && <small>{number(granule.cloudPct, 1)} % de nubes en la escena</small>}</>
+        : <small>{status === 'empty' ? 'Sin archivos en esta zona' : 'Catálogo no disponible'}</small>}</div>
+      <a href={earthdata} target="_blank" rel="noreferrer" aria-label={`Abrir ${name} en Earthdata`}><ArrowUpRight size={17} aria-hidden="true" /></a>
+    </article>)}
+  </div>;
+}
+
 export function NasaObservations({ id }: { id: string }) {
   const [response, setResponse] = useState<NasaResponse>();
   const [comparison, setComparison] = useState<EarthComparison>();
@@ -93,6 +106,10 @@ export function NasaObservations({ id }: { id: string }) {
   const [error, setError] = useState(false);
   const [month, setMonth] = useState('');
   const [pending, setPending] = useState(false);
+  const [more, setMore] = useState(false);
+  const [extra, setExtra] = useState<Catalog>();
+  const [extraError, setExtraError] = useState(false);
+  const [extraAttempt, setExtraAttempt] = useState(0);
   const selectId = useId();
 
   useEffect(() => {
@@ -101,6 +118,14 @@ export function NasaObservations({ id }: { id: string }) {
       .catch(() => { if (!request.signal.aborted) setError(true); });
     return () => request.abort();
   }, [id, attempt]);
+
+  useEffect(() => {
+    if (!more || extra) return;
+    const request = new AbortController();
+    api<Catalog>(`bodies/${encodeURIComponent(id)}/nasa/catalog`, { signal: request.signal }).then(setExtra)
+      .catch(() => { if (!request.signal.aborted) setExtraError(true); });
+    return () => request.abort();
+  }, [id, more, extra, extraAttempt]);
 
   const power = response?.power;
   const chosen = power?.months.find((row) => row.date === month) ?? power?.months.at(-1);
@@ -155,15 +180,14 @@ export function NasaObservations({ id }: { id: string }) {
       <p className="mission-eyebrow"><Satellite size={16} aria-hidden="true" /> NASA Earthdata · CMR</p>
       <h3 id="earthdata-title">Últimos archivos satelitales disponibles</h3>
       <p>Archivos que intersectan la zona de búsqueda del lago. La fecha indica una escena catalogada. Comprueba su cobertura y nubes antes de usarla como evidencia.</p>
-      <div className="satellite-list">
-        {response.catalog.map(({ id, name, purpose, status, granule, earthdata }) => <article key={id}>
-          <div><strong>{name}</strong><p>{purpose}</p></div>
-          <div>{granule?.date ? <><time dateTime={granule.date}>{displayDate(granule.date)}</time>
-            {granule.cloudPct != null && <small>{number(granule.cloudPct, 1)} % de nubes en la escena</small>}</>
-            : <small>{status === 'empty' ? 'Sin archivos en esta zona' : 'Catálogo no disponible'}</small>}</div>
-          <a href={earthdata} target="_blank" rel="noreferrer" aria-label={`Abrir ${name} en Earthdata`}><ArrowUpRight size={17} aria-hidden="true" /></a>
-        </article>)}
-      </div>
+      <CatalogList entries={response.catalog} />
+      <details className="mission-table-expand" onToggle={(event) => setMore(event.currentTarget.open)}>
+        <summary>Consultar más misiones y modelos</summary>
+        <p>Estas consultas verifican qué archivos figuran en el catálogo. Para comparar mediciones hace falta procesar el producto correspondiente.</p>
+        {extra ? <CatalogList entries={extra} /> : extraError ? <div className="notice danger" role="alert">No se pudo consultar el catálogo ampliado.
+          <button type="button" onClick={() => { setExtraError(false); setExtraAttempt((value) => value + 1); }}>Reintentar</button></div>
+          : more && <p className="loading" role="status">Buscando archivos de MODIS, VIIRS, AIRS, OMI, SMAP, GLDAS y MERRA-2…</p>}
+      </details>
     </section>
   </div>;
 }

@@ -55,6 +55,16 @@ comparar el mismo mes con GPM IMERG, CHIRPS y ERA5-Land. Configura `FIRMS_MAP_KE
 backend para activar las detecciones de VIIRS NOAA-20 cerca de los lagos. Las claves se guardan en
 variables de entorno de NestJS y Vercel.
 
+**Incendios** reproduce los 312 meses del mapa MODIS de `mapa3` con barras 3D, escala de color fija,
+control de velocidad y pausa. **Vegetación → Por provincia** integra el mapa, los diagnósticos de
+lluvia y NDVI y la serie temporal de `vegetacion-agua`. La vista **Cuencas de lagos** mantiene sus
+propias series e imágenes. Los archivos originales de esa rama viven en `Naseros/`.
+
+El atlas se prepara sin cambiar el análisis original. Para regenerar el archivo comprimido tras
+actualizar sus CSV, instala las dependencias científicas de `Naseros/requirements.txt` y ejecuta
+`python backend/scripts/export-regional-vegetation.py`. El servicio desplegado lee el archivo
+precalculado desde NestJS.
+
 ### Configuración local
 
 - **NestJS** (`backend/`) sirve diagnósticos, series de agua, imágenes, vigilancia e historial y guarda las

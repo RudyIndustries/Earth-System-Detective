@@ -1,11 +1,13 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, Query, StreamableFile } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Header, Param, Post, Query, StreamableFile } from '@nestjs/common';
 import { ObservatoryService } from './observatory.service';
 import { MapService } from './map.service';
 import { NasaService } from './nasa.service';
+import { RegionalVegetationService } from './regional-vegetation.service';
 
 @Controller()
 export class ObservatoryController {
-  constructor(private readonly observatory: ObservatoryService, private readonly map: MapService, private readonly nasa: NasaService) {}
+  constructor(private readonly observatory: ObservatoryService, private readonly map: MapService,
+    private readonly nasa: NasaService, private readonly regional: RegionalVegetationService) {}
 
   @Get('health')
   health() { return { status: 'ok' }; }
@@ -25,6 +27,11 @@ export class ObservatoryController {
     return { power, catalog, earthEngine: this.map.configured };
   }
 
+  @Get('bodies/:id/nasa/catalog')
+  extraCatalog(@Param('id') id: string) {
+    return this.nasa.granules(this.observatory.location(id), true);
+  }
+
   @Get('bodies/:id/climate')
   climate(@Param('id') id: string, @Query('month') month?: string) {
     if (!month || !/^20\d{2}-(0[1-9]|1[0-2])$/.test(month) || month >= new Date().toISOString().slice(0, 7)) {
@@ -35,6 +42,18 @@ export class ObservatoryController {
 
   @Get('fires/recent')
   recentFires() { return this.nasa.fires(this.observatory.dashboard().results); }
+
+  @Get('vegetation/regions')
+  @Header('Cache-Control', 'public, max-age=3600')
+  vegetationRegions() { return this.regional.regions(); }
+
+  @Get('vegetation/timeline')
+  @Header('Cache-Control', 'public, max-age=3600')
+  vegetationTimeline() { return this.regional.timeline(); }
+
+  @Get('vegetation/regions/:code')
+  @Header('Cache-Control', 'public, max-age=3600')
+  vegetationAnalysis(@Param('code') code: string) { return this.regional.analysis(code); }
 
   @Get('bodies/:id')
   detail(@Param('id') id: string, @Query('method') method?: string) { return this.observatory.detail(id, method); }

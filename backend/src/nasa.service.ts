@@ -17,6 +17,16 @@ const collections = [
   { id: 'C2799438230-POCLOUD', name: 'SWOT LakeSP', purpose: 'Archivos con medidas de lagos' },
   { id: 'C2723754851-GES_DISC', name: 'GPM IMERG Final', purpose: 'Producto mensual de precipitación' },
 ] as const;
+const additionalCollections = [
+  { id: 'C1748066515-LPCLOUD', name: 'MODIS Terra', purpose: 'Índices de vegetación (NDVI y EVI)' },
+  { id: 'C2307290656-LPCLOUD', name: 'MODIS Aqua', purpose: 'Índices de vegetación (NDVI y EVI)' },
+  { id: 'C3860065683-LAADS', name: 'VIIRS Black Marble', purpose: 'Luces nocturnas anuales' },
+  { id: 'C1701805681-GES_DISC', name: 'AIRS · Aqua', purpose: 'Temperatura y humedad de la atmósfera' },
+  { id: 'C3333493715-GES_DISC', name: 'OMI · Aura', purpose: 'Dióxido de nitrógeno atmosférico (NO₂)' },
+  { id: 'C2938664763-NSIDC_CPRD', name: 'SMAP', purpose: 'Humedad superficial del suelo a escala regional' },
+  { id: 'C1342986036-GES_DISC', name: 'GLDAS Noah', purpose: 'Humedad del suelo, escorrentía y otras variables modeladas' },
+  { id: 'C1276812868-GES_DISC', name: 'MERRA-2', purpose: 'Flujos de superficie del reanálisis climático' },
+] as const;
 
 interface PowerPayload {
   header?: { fill_value?: number };
@@ -92,9 +102,9 @@ export class NasaService {
     } catch { return fallback; }
   }
 
-  async granules(point: Point) {
+  async granules(point: Point, additional = false) {
     const boundingBox = [point.lon - .25, point.lat - .25, point.lon + .25, point.lat + .25].map((value) => value.toFixed(3)).join(',');
-    return Promise.all(collections.map(async (collection) => {
+    return Promise.all((additional ? additionalCollections : collections).map(async (collection) => {
       const { id, name, purpose } = collection;
       const url = new URL(cmr);
       url.search = new URLSearchParams({ collection_concept_id: id, bounding_box: boundingBox, page_size: '1', 'sort_key[]': '-start_date' }).toString();

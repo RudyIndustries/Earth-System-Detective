@@ -9,6 +9,8 @@ const files = [
   'data/national/agua_artificial.json',
   'data/real/alertas_semanales.json',
   'data/real/fires-map.json',
+  'data/real/vegetation-regions.json.gz',
+  'Naseros/data/bol_admin2_simplified.geojson.gz',
   'data/real/verificacion.json',
   'data/real/desaguadero.json',
 ];

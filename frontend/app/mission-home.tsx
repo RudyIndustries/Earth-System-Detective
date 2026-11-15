@@ -10,7 +10,7 @@ export function MissionHome({ lakes, fires, vegetation, alerts }: { lakes: strin
     { href: fires, name: 'Incendios', icon: Flame, media: 'chiquitania', alt: 'Imagen del este de la Chiquitania',
       description: 'Consulta los focos térmicos por cuenca y compáralos con el promedio histórico de la semana.' },
     { href: vegetation, name: 'Vegetación', icon: Leaf, media: 'san-matias', alt: 'Mapa de cambios de cobertura en San Matías',
-      description: 'Compara el paisaje antes y después y revisa las series de bosque, pasturas y cultivos.' },
+      description: 'Compara lluvia y verdor por provincia y revisa el bosque, los cultivos y las pasturas alrededor de los lagos.' },
   ];
 
   return <>

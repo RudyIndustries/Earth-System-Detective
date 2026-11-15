@@ -7,10 +7,11 @@ import { ObservatoryController } from './observatory.controller';
 import { ObservatoryService } from './observatory.service';
 import { MapService } from './map.service';
 import { NasaService } from './nasa.service';
+import { RegionalVegetationService } from './regional-vegetation.service';
 
 @Module({
   controllers: [ObservatoryController],
-  providers: [ObservatoryService, MapService, NasaService],
+  providers: [ObservatoryService, MapService, NasaService, RegionalVegetationService],
 })
 class AppModule {}
 

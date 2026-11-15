@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DeckGL from '@deck.gl/react';
 import type { MapViewState, Position } from '@deck.gl/core';
 import { ColumnLayer, PolygonLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers';
 import { Box, CalendarDays, CircleHelp, Map as MapIcon, Minus, Plus, RotateCcw } from 'lucide-react';
 import { api, number, signed } from './data';
+import { FireTimeline, type FireFrame } from './fire-timeline';
 
 type Coordinates = [longitude: number, latitude: number];
 type Archive = {
@@ -36,14 +37,28 @@ const cities = [
   { name: 'Potosí', position: [-65.75, -19.58] as Coordinates },
 ];
 
+const monthFormat = new Intl.DateTimeFormat('es-BO', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const dateLabel = (period: string) => {
   const [year, month] = period.split('-').map(Number);
-  return new Intl.DateTimeFormat('es-BO', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(Date.UTC(year, month - 1, 1));
+  return monthFormat.format(Date.UTC(year, month - 1, 1));
 };
 
 function sliceFor(data: Archive, months: number[]) {
   const size = data.lat.length;
   return data.lat.map((_, cell) => months.reduce((total, month) => total + data.counts[month * size + cell], 0));
+}
+
+function upperScale(values: number[]) {
+  const visible = values.filter((value) => Number.isFinite(value) && value > 0).sort((a, b) => a - b);
+  return Math.max(5, Math.ceil(visible[Math.floor(visible.length * .995)] ?? 5));
+}
+
+function heatColor(value: number, maximum: number): [number, number, number, number] {
+  const amount = Math.sqrt(Math.min(1, Math.abs(value) / maximum));
+  if (value < 0) return [Math.round(174 - amount * 111), Math.round(218 - amount * 60), 255, 255];
+  return amount < .64
+    ? [255, Math.round(235 - amount * 166), Math.round(164 - amount * 146), value > 0 ? 255 : 0]
+    : [Math.round(255 - (amount - .64) * 237), Math.round(129 - (amount - .64) * 270), Math.round(70 - (amount - .64) * 95), 255];
 }
 
 function cellsFor(archive: Archive, mode: LayerMode, period: string, year: number, horizon: number) {
@@ -81,18 +96,86 @@ function FireArchive({ archive }: { archive: Archive }) {
   const flat = view.pitch === 0;
   const [unavailable, setUnavailable] = useState(false);
   const [picked, setPicked] = useState<number>();
-  const years = [...new Set(archive.months.map((period) => Number(period.slice(0, 4))))].reverse();
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(650);
+  const [height, setHeight] = useState(1);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const years = useMemo(() => [...new Set(archive.months.map((period) => Number(period.slice(0, 4))))].reverse(), [archive.months]);
   const months = archive.months.filter((period) => period.startsWith(String(year)));
   const period = months.find((entry) => entry.endsWith(month)) ?? months.at(-1) ?? archive.months.at(-1)!;
-  const cells = useMemo(() => cellsFor(archive, mode, period, year, horizon), [archive, mode, period, year, horizon]);
+  const seasonal = mode === 'season' || mode === 'seasonAnomaly';
+  const seasons = useMemo(() => years.toReversed().filter((year) => archive.season.every((month) =>
+    archive.months.includes(`${year}-${String(month).padStart(2, '0')}`))), [archive.months, archive.season, years]);
+  const activeYear = seasonal && !seasons.includes(year) ? (seasons.at(-1) ?? year) : year;
+  const cells = useMemo(() => cellsFor(archive, mode, period, activeYear, horizon), [archive, mode, period, activeYear, horizon]);
   const comparison = mode === 'model' || mode.endsWith('Anomaly');
   const active = cells.find((cell) => cell.index === picked);
-  const maximum = Math.max(1, ...cells.map((cell) => Math.abs(cell.score)));
+  const { monthlyTotal, seasonTotal, monthlyMax, seasonalMax, modelMax } = useMemo(() => {
+    const size = archive.lat.length;
+    const monthlyTotal = archive.months.map((_, index) =>
+      archive.counts.slice(index * size, (index + 1) * size).reduce((a, b) => a + b, 0));
+    const periodBySeason = seasons.map((year) => archive.season.map((month) => (year - archive.y0) * 12 + month - 1));
+    return {
+      monthlyTotal, seasonTotal: periodBySeason.map((indices) => indices.reduce((total, index) => total + monthlyTotal[index], 0)),
+      monthlyMax: upperScale(archive.counts), seasonalMax: upperScale(periodBySeason.flatMap((indices) => sliceFor(archive, indices))),
+      modelMax: upperScale(archive.model_anom.val.map(Math.abs)),
+    };
+  }, [archive, seasons]);
+  const maximum = mode === 'model' ? modelMax : comparison ? 4 : seasonal ? seasonalMax : monthlyMax;
+  const scaleUnit = mode.endsWith('Anomaly') ? 'z' : 'focos';
+  const elevation = (score: number) => Math.sqrt(Math.min(1, Math.abs(score) / maximum)) * 98000 * height;
   const mapped = cells.filter((cell) => cell.score !== 0);
   const forecast = archive.forecasts.find((entry) => entry.h === horizon);
-  const seasonal = mode === 'season' || mode === 'seasonAnomaly';
-  const periodLabel = seasonal ? `Agosto a octubre de ${year}` : mode === 'model' ? `Agosto a octubre de ${archive.model_anom.year}`
+  const periodLabel = seasonal ? `Agosto a octubre de ${activeYear}` : mode === 'model' ? `Agosto a octubre de ${archive.model_anom.year}`
     : dateLabel(mode === 'forecast' && forecast ? forecast.month : period);
+  const frames: FireFrame[] = useMemo(() => {
+    if (mode === 'model') return [{ key: String(archive.model_anom.year), label: `Agosto a octubre de ${archive.model_anom.year}` }];
+    if (mode === 'forecast') return archive.forecasts.map((entry) => ({
+      key: entry.month, label: dateLabel(entry.month), total: entry.val.reduce((a, b) => a + b, 0),
+    }));
+    if (seasonal) return seasons.map((year, index) => ({ key: String(year), label: `Agosto a octubre de ${year}`, total: seasonTotal[index] }));
+    return archive.months.map((month, index) => ({ key: month, label: dateLabel(month), total: monthlyTotal[index] }));
+  }, [archive, mode, monthlyTotal, seasonTotal, seasonal, seasons]);
+  const frameKey = mode === 'forecast' ? forecast?.month : mode === 'model' ? String(archive.model_anom.year) : seasonal ? String(activeYear) : period;
+  const frameIndex = Math.max(0, frames.findIndex(({ key }) => key === frameKey));
+
+  const showFrame = useCallback((frame: FireFrame) => {
+    if (mode === 'forecast') {
+      const entry = archive.forecasts.find((entry) => entry.month === frame.key);
+      if (entry) setHorizon(entry.h);
+    } else {
+      setYear(Number(frame.key.slice(0, 4)));
+      if (!seasonal) setMonth(frame.key.slice(5));
+    }
+  }, [mode, seasonal, archive.forecasts]);
+  function seek(index: number) {
+    setPlaying(false);
+    showFrame(frames[index]);
+  }
+
+  useEffect(() => {
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const updatePreference = () => setReducedMotion(preference.matches);
+    const pauseHidden = () => { if (document.hidden) setPlaying(false); };
+    updatePreference();
+    preference.addEventListener('change', updatePreference);
+    document.addEventListener('visibilitychange', pauseHidden);
+    return () => {
+      preference.removeEventListener('change', updatePreference);
+      document.removeEventListener('visibilitychange', pauseHidden);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!playing) return;
+    const timer = setTimeout(() => {
+      const next = frames[frameIndex + 1];
+      if (next) showFrame(next);
+      if (!frames[frameIndex + 2]) setPlaying(false);
+    }, speed);
+    return () => clearTimeout(timer);
+  }, [playing, frameIndex, frames, speed, showFrame]);
+
   const shownValue = (cell: typeof cells[number]) => cell.average != null
     ? `${number(cell.value)} focos observados · ${number(cell.average, 1)} habituales`
     : mode === 'model' ? `${signed(cell.value, 1)} focos frente a lo esperado`
@@ -108,14 +191,15 @@ function FireArchive({ archive }: { archive: Archive }) {
       extruded: !flat, getElevation: 13500, getFillColor: [45, 75, 117], getLineColor: [130, 163, 212], lineWidthMinPixels: 1.4 }),
     new PolygonLayer<Coordinates[]>({ id: 'bolivia-fire-border', data: archive.boundary, getPolygon: (ring) => ring,
       filled: false, getLineColor: [130, 163, 212], lineWidthMinPixels: 1.2 }),
-    new ColumnLayer<typeof cells[number]>({ id: 'fire-grid', data: mapped, getPosition: (cell) => cell.position,
+    new ColumnLayer<typeof cells[number]>({ id: 'fire-grid', data: cells, getPosition: (cell) => cell.position,
       radius: 8800, diskResolution: 4, angle: 45, extruded: !flat, pickable: true, autoHighlight: true,
-      getElevation: (cell) => Math.sqrt(Math.abs(cell.score) / maximum) * 84000,
-      getFillColor: (cell) => cell.score < 0 ? [88, 164, 255] :
-        [255, Math.round(192 - 115 * Math.sqrt(cell.score / maximum)), 76],
-      onClick: ({ object }) => { if (object) setPicked(object.index); } }),
+      getElevation: (cell) => elevation(cell.score),
+      getFillColor: (cell) => heatColor(cell.score, maximum),
+      updateTriggers: { getElevation: [maximum, height], getFillColor: [maximum] },
+      transitions: reducedMotion ? {} : { getElevation: 240, getFillColor: 200 },
+      onClick: ({ object }) => { if (object?.score) setPicked(object.index); } }),
     new ScatterplotLayer<typeof cells[number]>({ id: 'selected-fire-zone', data: active ? [active] : [],
-      getPosition: (cell) => [cell.position[0], cell.position[1], flat ? 0 : Math.sqrt(Math.abs(cell.score) / maximum) * 84000],
+      getPosition: (cell) => [cell.position[0], cell.position[1], flat ? 0 : elevation(cell.score)],
       radiusUnits: 'pixels', getRadius: 15, getLineColor: [240, 255, 154], filled: false, stroked: true, lineWidthMinPixels: 2.5,
       parameters: { depthCompare: 'always', depthWriteEnabled: false } }),
     new TextLayer({ id: 'fire-place-names', data: cities, getPosition: (city) => city.position, getText: (city) => city.name,
@@ -127,7 +211,7 @@ function FireArchive({ archive }: { archive: Archive }) {
   return <section id="mapa-incendios" className="panel mission-data-panel fire-archive" aria-labelledby="fire-map-title" tabIndex={-1}>
     <div className="mission-chart-heading">
       <div><p className="mission-eyebrow">Archivo satelital</p><h2 id="fire-map-title">¿Dónde se detectó más calor?</h2>
-        <p>Elige un mes o una temporada y toca una barra para ver los focos de esa zona.</p></div>
+        <p>Reproduce la secuencia o elige una fecha. Toca una barra para ver los focos de esa zona.</p></div>
       <div className="camera-switch" role="group" aria-label="Vista del mapa de incendios">
         <button type="button" aria-pressed={!flat} onClick={() => moveCamera({ ...camera.current, pitch: homeCamera.pitch, bearing: homeCamera.bearing })}><Box size={16} aria-hidden="true" /> 3D</button>
         <button type="button" aria-pressed={flat} onClick={() => moveCamera({ ...camera.current, pitch: 0, bearing: 0 })}><MapIcon size={16} aria-hidden="true" /> 2D</button>
@@ -136,20 +220,24 @@ function FireArchive({ archive }: { archive: Archive }) {
     <div className="fire-controls">
       <label htmlFor="fire-map-layer"><span id="fire-map-layer-label">Qué quieres ver</span>
         <select id="fire-map-layer" aria-labelledby="fire-map-layer-label" value={mode} onChange={(event) => {
+        setPlaying(false);
         setMode(event.target.value as LayerMode);
         setPicked(undefined);
       }}>{Object.entries(layerOptions).map(([key, option]) => <option key={key} value={key}>{option.label}</option>)}</select></label>
       {mode === 'forecast' ? <label htmlFor="fire-map-horizon"><span id="fire-map-horizon-label">Mes estimado</span>
         <select id="fire-map-horizon" aria-labelledby="fire-map-horizon-label" value={horizon}
-        onChange={(event) => { setHorizon(Number(event.target.value)); setPicked(undefined); }}>
+        onChange={(event) => { setPlaying(false); setHorizon(Number(event.target.value)); setPicked(undefined); }}>
         {archive.forecasts.map((entry) => <option value={entry.h} key={entry.h}>{dateLabel(entry.month)}</option>)}
       </select></label> : mode !== 'model' && <>
         <label htmlFor="fire-map-year"><span id="fire-map-year-label"><CalendarDays size={15} aria-hidden="true" /> Año</span>
-          <select id="fire-map-year" aria-labelledby="fire-map-year-label" value={year} onChange={(event) => { setYear(Number(event.target.value)); setPicked(undefined); }}>
-            {years.map((option) => <option key={option}>{option}</option>)}
+          <select id="fire-map-year" aria-labelledby="fire-map-year-label" value={activeYear} onChange={(event) => {
+            setPlaying(false); setYear(Number(event.target.value)); setPicked(undefined);
+          }}>
+            {(seasonal ? seasons.toReversed() : years).map((option) => <option key={option}>{option}</option>)}
           </select></label>
         {!seasonal && <label htmlFor="fire-map-month"><span id="fire-map-month-label">Mes</span>
           <select id="fire-map-month" aria-labelledby="fire-map-month-label" value={period} onChange={(event) => {
+          setPlaying(false);
           setMonth(event.target.value.slice(5));
           setPicked(undefined);
         }}>{months.map((entry) => <option key={entry} value={entry}>{dateLabel(entry).split(' de ')[0]}</option>)}</select></label>}
@@ -157,12 +245,19 @@ function FireArchive({ archive }: { archive: Archive }) {
     </div>
     <p className="fire-map-hint"><CircleHelp size={17} aria-hidden="true" /> {layerOptions[mode].help}
       {mode.endsWith('Anomaly') && ` Referencia ${archive.base.join('–')}.`}</p>
+    <div className="fire-replay-layout">
+      <FireTimeline frames={frames} index={frameIndex} playing={playing} speed={speed} height={height} select={seek}
+        toggle={() => {
+          if (playing) setPlaying(false);
+          else { if (frameIndex === frames.length - 1) showFrame(frames[0]); setPlaying(true); }
+        }}
+        setSpeed={setSpeed} setHeight={setHeight} flat={flat} maximum={maximum} comparison={comparison} unit={scaleUnit} />
     <div className="fire-map-stage">
       {unavailable ? <p className="map-notice" role="status">El mapa interactivo necesita WebGL. Los datos del periodo están debajo.</p>
         : <DeckGL initialViewState={view} controller={{ scrollZoom: false, dragRotate: !flat, touchRotate: !flat }} layers={layers}
           onViewStateChange={({ viewState }) => { camera.current = viewState as MapViewState; }}
           onError={(error) => { if (/context|webgl|device/i.test(error.message)) setUnavailable(true); }}
-          getTooltip={({ object }) => object?.position ? { text: `${periodLabel}\n${shownValue(object)}\n${number(Math.abs(object.position[1]), 2)}° S · ${number(Math.abs(object.position[0]), 2)}° O`,
+          getTooltip={({ object }) => object?.score ? { text: `${periodLabel}\n${shownValue(object)}\n${number(Math.abs(object.position[1]), 2)}° S · ${number(Math.abs(object.position[0]), 2)}° O`,
             className: 'mission-map-tooltip' } : null} />}
       {!unavailable && <div className="fire-map-zoom" role="group" aria-label="Zoom del mapa de incendios">
         <button type="button" aria-label="Acercar" onClick={() => moveCamera({ ...camera.current, zoom: Math.min(homeCamera.maxZoom, camera.current.zoom + .7) })}><Plus size={19} aria-hidden="true" /></button>
@@ -171,7 +266,8 @@ function FireArchive({ archive }: { archive: Archive }) {
       </div>}
       <p className="fire-map-credit">NASA FIRMS · MODIS Terra</p>
     </div>
-    <div className="fire-map-readout" aria-live="polite">
+    </div>
+    <div className="fire-map-readout" aria-live={playing ? 'off' : 'polite'}>
       <div><strong>{periodLabel}</strong><span>{comparison
         ? `${number(mapped.filter((cell) => cell.score > 0).length)} zonas por encima de la referencia en el mapa`
         : `${number(cells.reduce((sum, cell) => sum + cell.value, 0), mode === 'forecast' ? 1 : 0)} focos ${mode === 'forecast' ? 'estimados' : 'detectados'} en las zonas del archivo`}</span></div>
