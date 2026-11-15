@@ -5,7 +5,7 @@ import DeckGL from '@deck.gl/react';
 import { FlyToInterpolator, type Layer, type Position } from '@deck.gl/core';
 import { TerrainLayer } from '@deck.gl/geo-layers';
 import { ColumnLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers';
-import { ArrowUpRight, Layers, LocateFixed } from 'lucide-react';
+import { ArrowUpRight, Layers, LocateFixed, Mountain } from 'lucide-react';
 import { api, firstSuspect, signed, states, visibleStates, type BodyDetail, type Method, type Place, type Snapshot, type State, type WaterBody } from './data';
 import { Status } from './ui';
 
@@ -38,6 +38,7 @@ export default function MapView({ snapshot, method, bodies, selected, select, op
   const [bodyElevations, setBodyElevations] = useState<Elevation[]>([]);
   const [local, setLocal] = useState<{ id: string; places: Place[]; elevations: Elevation[] }>();
   const [gpuError, setGpuError] = useState(false);
+  const [camera, setCamera] = useState<{ flat: boolean }>({ flat: false });
   const selectedId = selected?.body_id;
   const textureKey = `${mode}:${year}:${fires}`;
   const activeTexture = textureResult?.key === textureKey ? textureResult : undefined;
@@ -75,9 +76,10 @@ export default function MapView({ snapshot, method, bodies, selected, select, op
 
   const view = useMemo(() => ({
     ...(selected ? { latitude: selected.lat, longitude: selected.lon, zoom: 9.3, pitch: 60, bearing: -20 } : country),
+    ...(camera.flat ? { pitch: 0, bearing: 0 } : {}),
     transitionInterpolator: new FlyToInterpolator(),
     transitionDuration: 950,
-  }), [selected]);
+  }), [selected, camera]);
   const heights = new Map([...bodyElevations, ...(local?.id === selectedId ? local?.elevations ?? [] : [])]
     .map((item) => [heightKey(item), item.elevation]));
   const z = (point: { lat: number; lon: number }) => heights.get(heightKey(point)) ?? estimatedElevation(point);
@@ -129,56 +131,77 @@ export default function MapView({ snapshot, method, bodies, selected, select, op
   const suspect = selected && firstSuspect(selected);
 
   return <>
-    <div className="status-grid">{mapStates.map((state) => <article key={state} className="panel status-card">
-      <strong>{counts[state] ?? 0}</strong><Status state={state} />
-    </article>)}</div>
-    <section aria-label="Mapa de cuerpos de agua" className="map-panel panel">
-      <div className="map-toolbar">
-        <label><span><Layers size={17} aria-hidden="true" /> Capa del mapa</span>
-          <select value={mode} onChange={(event) => setMode(event.target.value as Mode)}>
+    <div className="map-workspace">
+      <section aria-label="Mapa de cuerpos de agua" className="map-panel panel">
+        <div className="map-toolbar">
+          <div className="camera-switch" role="group" aria-label="Perspectiva del mapa">
+            <button type="button" aria-pressed={!camera.flat} onClick={() => setCamera({ flat: false })}>
+              <Mountain size={16} aria-hidden="true" /> 3D
+            </button>
+            <button type="button" aria-pressed={camera.flat} onClick={() => setCamera({ flat: true })}>2D</button>
+          </div>
+          <button className="map-reset" type="button" onClick={() => { select(null); setCamera({ flat: camera.flat }); }}>
+            <LocateFixed size={16} aria-hidden="true" /> Vista de Bolivia
+          </button>
+        </div>
+        {mode !== 'esri' && !activeTexture && <p role="status" className="map-notice">Cargando capa de Earth Engine…</p>}
+        {activeTexture?.error && <p role="alert" className="map-notice">{activeTexture.error} Se muestra el fondo satelital de Esri.</p>}
+        <div className="map-frame">
+          {!gpuError ? <DeckGL initialViewState={view} controller={{ dragRotate: !camera.flat, touchRotate: !camera.flat }} layers={layers}
+            onError={(error) => { if (/webgl|device/i.test(error.message)) setGpuError(true); }}
+            getTooltip={({ object }) => object ? { text: `${object.name}\n${object.description}` } : null} />
+            : <p className="map-notice" role="status">El navegador no pudo iniciar WebGL. Puedes elegir un cuerpo de agua en la lista.</p>}
+          <div className="attribution">{mode === 'esri' || !activeTexture?.url ? 'Esri World Imagery' : 'Google Earth Engine'} · AWS Terrain Tiles</div>
+        </div>
+        <div className="map-footer">
+          <span><i className="legend-column" aria-hidden="true" /> Columna: altura según el porcentaje de agua perdida</span>
+          {national && <span><i className="legend-national" aria-hidden="true" /> Laguna del barrido nacional</span>}
+          {artificial && <span><i className="legend-artificial" aria-hidden="true" /> Agua artificial</span>}
+        </div>
+      </section>
+
+      <aside className="map-sidebar" aria-label="Controles del mapa">
+        <section className="panel overview-panel map-layers">
+          <h2><Layers size={18} aria-hidden="true" /> Capas</h2>
+          <label>Fondo del mapa<select value={mode} onChange={(event) => setMode(event.target.value as Mode)}>
             <option value="esri">Satélite actual (Esri)</option>
-            {snapshot.liveMap && <><option value="water">Agua natural y artificial (MapBiomas)</option>
-              <option value="landsat">Landsat + agua (Earth Engine)</option></>}
+            {snapshot.liveMap && <><option value="water">Agua natural y artificial</option>
+              <option value="landsat">Landsat + agua</option></>}
           </select></label>
-        {mode !== 'esri' && <>
-          <label>Año <select value={year} onChange={(event) => setYear(Number(event.target.value))}>
-            {Array.from({ length: 41 }, (_, index) => 2025 - index).map((year) => <option key={year}>{year}</option>)}
+          {mode !== 'esri' && <>
+            <label>Año <select value={year} onChange={(event) => setYear(Number(event.target.value))}>
+              {Array.from({ length: 41 }, (_, index) => 2025 - index).map((year) => <option key={year}>{year}</option>)}
+            </select></label>
+            <label className="check-inline"><input type="checkbox" checked={fires} onChange={(event) => setFires(event.target.checked)} /> Focos FIRMS (7 días)</label>
+          </>}
+          {!!snapshot.national.length && <label className="check-inline"><input type="checkbox" checked={national} onChange={(event) => setNational(event.target.checked)} /> Barrido nacional ({snapshot.national.length})</label>}
+          {!!snapshot.artificial?.points.length && <label className="check-inline"><input type="checkbox" checked={artificial} onChange={(event) => setArtificial(event.target.checked)} /> Agua artificial</label>}
+        </section>
+        <section className="panel overview-panel" aria-label="Explorar cuerpos de agua">
+          <h2>Explorar lagunas</h2>
+          <label>Cuerpo de agua<select value={selected?.body_id ?? ''} onChange={(event) => select(event.target.value || null)}>
+            <option value="">Seleccionar cuerpo de agua</option>
+            {bodies.map((body) => <option key={body.body_id} value={body.body_id}>{body.name}</option>)}
           </select></label>
-          <label className="check-inline"><input type="checkbox" checked={fires} onChange={(event) => setFires(event.target.checked)} /> Focos FIRMS (7 días)</label>
-        </>}
-        {!!snapshot.national.length && <label className="check-inline"><input type="checkbox" checked={national} onChange={(event) => setNational(event.target.checked)} /> Barrido nacional ({snapshot.national.length})</label>}
-        {!!snapshot.artificial?.points.length && <label className="check-inline"><input type="checkbox" checked={artificial} onChange={(event) => setArtificial(event.target.checked)} /> Agua artificial</label>}
-        <button className="map-reset" type="button" disabled={!selected} onClick={() => select(null)}><LocateFixed size={17} aria-hidden="true" /> Vista general</button>
-      </div>
-      {mode !== 'esri' && !activeTexture && <p role="status" className="map-notice">Cargando capa de Earth Engine…</p>}
-      {activeTexture?.error && <p role="alert" className="map-notice">{activeTexture.error} Se muestra el fondo satelital de Esri.</p>}
-      <div className="map-frame">
-        {!gpuError ? <DeckGL initialViewState={view} controller layers={layers}
-          onError={(error) => { if (/webgl|device/i.test(error.message)) setGpuError(true); }}
-          getTooltip={({ object }) => object ? { text: `${object.name}\n${object.description}` } : null} />
-          : <p className="map-notice" role="status">El navegador no pudo iniciar WebGL. Puedes elegir un cuerpo de agua en la lista.</p>}
-        <div className="attribution">{mode === 'esri' || !activeTexture?.url ? 'Esri World Imagery' : 'Google Earth Engine'} · AWS Terrain Tiles</div>
-      </div>
-      <div className="map-footer"><span>Altura de las columnas según el porcentaje de agua perdida.</span>
-        {!snapshot.liveMap && <span>Capas en vivo disponibles con una cuenta de Earth Engine.</span>}</div>
-    </section>
-    <div className="overview-grid map-summary">
-    <section className="panel overview-panel" aria-label="Explorar cuerpos de agua">
-      <h2>Explorar un cuerpo de agua</h2>
-      <label>Cuerpo de agua<select value={selected?.body_id ?? ''} onChange={(event) => select(event.target.value || null)}>
-        <option value="">Seleccionar cuerpo de agua</option>
-        {bodies.map((body) => <option key={body.body_id} value={body.body_id}>{body.name}</option>)}</select></label>
-      {selected && <div className="map-selection"><Status state={selected.state} /><strong>{signed(selected.trend.change_pct)}%</strong>
-        {suspect && <p className="muted">{suspect.label} · {suspect.evidence}</p>}
-        {!!selected.why?.length && <ul className="muted">{selected.why.slice(0, 3).map((reason) => <li key={reason}>{reason}</li>)}</ul>}
-        <button type="button" className="primary" onClick={() => openDetails(selected.body_id)}>Abrir ficha <ArrowUpRight size={17} aria-hidden="true" /></button>
-      </div>}
-    </section>
-    <section className="panel overview-panel"><h2>Casos para revisar</h2>
-      <div className="priority-list">{priority.map((body) => <button type="button" key={body.body_id} onClick={() => select(body.body_id)}>
-        <span>{body.name}</span><strong>{signed(body.trend.change_pct)}%</strong>
-      </button>)}</div>
-    </section>
+          {selected && <div className="map-selection">
+            <div><Status state={selected.state} /><strong>{signed(selected.trend.change_pct)}%</strong></div>
+            {suspect && <p className="muted">{suspect.label} · {suspect.evidence}</p>}
+            {!!selected.why?.length && <ul className="muted">{selected.why.slice(0, 3).map((reason) => <li key={reason}>{reason}</li>)}</ul>}
+            <button type="button" className="primary" onClick={() => openDetails(selected.body_id)}>Abrir ficha <ArrowUpRight size={16} aria-hidden="true" /></button>
+          </div>}
+          <ul className="priority-list">{priority.map((body) => <li key={body.body_id}>
+            <button type="button" aria-pressed={selectedId === body.body_id} onClick={() => select(body.body_id)}>
+              <span>{body.name.split(' (')[0]}</span><strong>{signed(body.trend.change_pct)}%</strong>
+            </button>
+          </li>)}</ul>
+        </section>
+      </aside>
     </div>
+    <section className="map-verdicts" aria-label="Diagnósticos visibles">
+      <h2>Diagnósticos visibles</h2>
+      <div className="status-grid">{mapStates.map((state) => <article key={state} className="panel status-card">
+        <strong>{counts[state] ?? 0}</strong><Status state={state} />
+      </article>)}</div>
+    </section>
   </>;
 }

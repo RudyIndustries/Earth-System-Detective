@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowUpRight, Download, Droplets, Flame, Layers, LayoutDashboard, Map as MapIcon, ScanSearch, Search, Table2 } from 'lucide-react';
 import { api, downloadCsv, firstSuspect, humanEvidenceStates, methodNames, modelUrl, number, signed, states,
   visibleStates, type Method, type Snapshot, type State, type WaterBody, type Weekly } from './data';
@@ -17,34 +19,62 @@ const Details = dynamic(() => import('./details').then((module) => module.Detail
 const Overview = dynamic(() => import('./overview'), {
   loading: () => <p className="loading" role="status">Cargando panorama…</p>,
 });
-const views = [
-  { name: 'Panorama', icon: LayoutDashboard },
-  { name: 'Mapa de alertas', icon: MapIcon },
-  { name: 'Monitoreo', icon: Table2 },
-  { name: 'Ficha del cuerpo de agua', icon: ScanSearch },
-  { name: 'Vigilancia semanal', icon: Flame },
-] as const;
+const views = {
+  panorama: { name: 'Panorama', label: 'Panorama', icon: LayoutDashboard },
+  mapa: { name: 'Mapa 3D de Bolivia', label: 'Mapa 3D', icon: MapIcon },
+  monitoreo: { name: 'Monitoreo', label: 'Monitoreo', icon: Table2 },
+  ficha: { name: 'Ficha del cuerpo de agua', label: 'Fichas', icon: ScanSearch },
+  vigilancia: { name: 'Vigilancia semanal', label: 'Incendios', icon: Flame },
+} as const;
+type View = keyof typeof views;
+
+function locationFor(view: View, method: Method, body?: string | null) {
+  const params = new URLSearchParams();
+  if (view !== 'panorama') params.set('vista', view);
+  if (method === 'conservative') params.set('metodo', 'conservador');
+  if (body) params.set('laguna', body);
+  return params.size ? `/?${params}` : '/';
+}
 
 export function Dashboard() {
-  const [view, setView] = useState(0);
-  const [method, setMethod] = useState<Method>('balance');
-  const [loaded, setLoaded] = useState<{ method: Method; snapshot: Snapshot }>();
+  const router = useRouter();
+  const params = useSearchParams();
+  const candidate = params.get('vista');
+  const view = candidate && Object.hasOwn(views, candidate) ? candidate as View : 'panorama';
+  const requestedMethod: Method = params.get('metodo') === 'conservador' ? 'conservative' : 'balance';
+  const selected = params.get('laguna');
+  const [snapshots, setSnapshots] = useState<Partial<Record<Method, Snapshot>>>({});
   const [weekly, setWeekly] = useState<Weekly>();
-  const [error, setError] = useState('');
+  const [error, setError] = useState<{ method: Method; message: string }>();
   const [weeklyError, setWeeklyError] = useState('');
   const [showControls, setShowControls] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [weeklyAttempt, setWeeklyAttempt] = useState(0);
+  const method = snapshots.balance?.conservativeAvailable === false ? 'balance' : requestedMethod;
+  const snapshot = snapshots[method];
+  const currentError = error?.method === method ? error.message : undefined;
 
   useEffect(() => {
+    if (snapshots.balance) return;
     const request = new AbortController();
-    api<Snapshot>(modelUrl('dashboard', method), { signal: request.signal })
-      .then((snapshot) => setLoaded({ method, snapshot })).catch((error: Error) => {
-      if (!request.signal.aborted) setError(error.message);
-    });
+    api<Snapshot>('dashboard', { signal: request.signal })
+      .then((balance) => setSnapshots((previous) => ({ ...previous, balance })))
+      .catch((error: Error) => {
+        if (!request.signal.aborted) setError({ method: requestedMethod, message: error.message });
+      });
     return () => request.abort();
-  }, [attempt, method]);
+  }, [attempt, requestedMethod, snapshots.balance]);
+
+  useEffect(() => {
+    if (method !== 'conservative' || !snapshots.balance?.conservativeAvailable || snapshot) return;
+    const request = new AbortController();
+    api<Snapshot>(modelUrl('dashboard', 'conservative'), { signal: request.signal })
+      .then((conservative) => setSnapshots((previous) => ({ ...previous, conservative })))
+      .catch((error: Error) => {
+        if (!request.signal.aborted) setError({ method: 'conservative', message: error.message });
+      });
+    return () => request.abort();
+  }, [attempt, method, snapshot, snapshots.balance?.conservativeAvailable]);
 
   useEffect(() => {
     const request = new AbortController();
@@ -54,52 +84,89 @@ export function Dashboard() {
     return () => request.abort();
   }, [weeklyAttempt]);
 
-  const snapshot = loaded?.method === method ? loaded.snapshot : undefined;
   const controls = new Set(snapshot?.results.map((body) => body.control_id).filter(Boolean));
-  const visible = snapshot?.results.filter((body) => showControls || !controls.has(body.body_id) || humanEvidenceStates.includes(body.state)) ?? [];
+  const visible = snapshot?.results.filter((body) => body.body_id === selected || showControls ||
+    !controls.has(body.body_id) || humanEvidenceStates.includes(body.state)) ?? [];
   const current = visible.find((body) => body.body_id === selected);
 
   function openDetails(id: string) {
-    if (!visible.some((body) => body.body_id === id)) setShowControls(true);
-    setSelected(id);
-    setView(3);
+    router.push(locationFor('ficha', method, id));
+  }
+
+  function selectBody(id: string | null) {
+    router.replace(locationFor(view, method, id), { scroll: false });
   }
 
   return <div className="shell">
-    <aside className="sidebar">
-      <div className="brand"><span className="brand-mark"><Droplets size={22} aria-hidden="true" /></span><span>Detector de <br />huella humana</span></div>
-      <nav aria-label="Vistas">
-        {views.map(({ name, icon: Icon }, index) => <button key={name} type="button" aria-current={index === view ? 'page' : undefined}
-          className={index === view ? 'nav-active' : ''} onClick={() => setView(index)}><Icon size={18} aria-hidden="true" />{name}</button>)}
-      </nav>
-      <label className="control-check"><input type="checkbox" checked={showControls} onChange={(event) => setShowControls(event.target.checked)} />
-        Mostrar gemelas de control</label>
-    </aside>
-    <main className="main-content">
+    <a className="skip-link" href="#contenido">Ir al contenido</a>
+    <header className="site-header">
+      <div className="navbar">
+        <Link className="brand" href={locationFor('panorama', method)}>
+          <span className="brand-mark"><Droplets size={21} aria-hidden="true" /></span>
+          <span>Detector de huella humana</span>
+        </Link>
+        <nav aria-label="Navegación principal">
+          {(Object.keys(views) as View[]).map((key) => {
+            const { label, icon: Icon } = views[key];
+            const body = key === 'mapa' || key === 'ficha' ? selected : null;
+            return <Link key={key} href={locationFor(key, method, body)} aria-current={key === view ? 'page' : undefined}>
+              <Icon size={17} aria-hidden="true" /><span>{label}</span>
+            </Link>;
+          })}
+        </nav>
+      </div>
+    </header>
+    <main id="contenido" className="main-content">
       <header className="page-header"><div>
         <p className="eyebrow">Agua de Bolivia</p>
         <h1>{views[view].name}</h1>
-        {view === 0 && <p>Superficie de agua, veredictos y señales de presión sobre las cuencas de Bolivia.</p>}
-        {view === 1 && <p>Variación de la superficie de agua y señales de presión sobre las cuencas.</p>}
+        {view === 'panorama' && <p>Superficie de agua, veredictos y señales de presión sobre las cuencas.</p>}
+        {view === 'mapa' && <p>Explora el relieve y selecciona una columna para enfocar la laguna y consultar su ficha.</p>}
       </div>
-        {loaded?.snapshot.conservativeAvailable && view !== 4 && <label>Método de análisis
-          <select aria-label="Método de análisis" value={method} onChange={(event) => { setError(''); setMethod(event.target.value as Method); }}>
-            {Object.entries(methodNames).map(([value, name]) => <option key={value} value={value}>{name}</option>)}
-          </select></label>}
+        {view !== 'vigilancia' && <div className="page-actions">
+          {(view === 'panorama' || view === 'mapa' || view === 'ficha') && snapshot && <label className="control-check">
+            <input type="checkbox" checked={showControls} onChange={(event) => {
+              setShowControls(event.target.checked);
+              if (!event.target.checked && current && controls.has(current.body_id) && !humanEvidenceStates.includes(current.state)) {
+                selectBody(null);
+              }
+            }} /> Mostrar gemelas de control
+          </label>}
+          {snapshots.balance?.conservativeAvailable && <fieldset className="method-switch">
+            <legend>Método de análisis</legend>
+            <div>{(Object.keys(methodNames) as Method[]).map((option) => (
+              <label key={option}><input type="radio" name="analysis-method" checked={method === option} onChange={() => {
+                setError(undefined);
+                router.push(locationFor(view, option, selected), { scroll: false });
+              }} /><span>{methodNames[option]}</span></label>
+            ))}</div>
+          </fieldset>}
+        </div>}
       </header>
-      {error && <div className="notice danger" role="alert">
-        <p>{error} Comprueba que NestJS esté iniciado.</p>
-        <button type="button" onClick={() => { setError(''); setAttempt((value) => value + 1); }}>Reintentar</button>
+      {currentError && view !== 'vigilancia' && <div className="notice danger" role="alert">
+        <p>{currentError} Comprueba que NestJS esté iniciado.</p>
+        <button type="button" onClick={() => { setError(undefined); setAttempt((value) => value + 1); }}>Reintentar</button>
       </div>}
-      {!snapshot && !error && <p className="loading" role="status">Cargando datos del detector…</p>}
+      {!snapshot && !currentError && view !== 'vigilancia' && <p className="loading" role="status">Cargando datos del detector…</p>}
       {snapshot?.sample && <p className="notice">Datos ficticios de prueba.</p>}
-      {snapshot && method === 'conservative' && view < 4 && <p className="notice">El modelo conservador muestra el análisis completo. Las 300 lagunas del barrido nacional se consultan en Balance hídrico.</p>}
-      {snapshot && view === 0 && <Overview snapshot={snapshot} method={method} bodies={visible} weekly={weekly} openDetails={openDetails} />}
-      {snapshot && view === 1 && <MapView key={method} method={method} snapshot={snapshot} bodies={visible} selected={current} select={setSelected} openDetails={openDetails} />}
-      {snapshot && view === 2 && <Monitor key={method} method={method} snapshot={snapshot} weekly={weekly} openDetails={openDetails} />}
-      {snapshot && view === 3 && (visible.length ? <Details key={method} method={method} bodies={visible} id={current?.body_id ?? visible[0].body_id}
-        select={setSelected} back={() => setView(1)} /> : <p className="notice">No hay cuerpos de agua disponibles.</p>)}
-      {snapshot && view === 4 && (weeklyError ? <div className="notice danger" role="alert">
+      {snapshot && method === 'conservative' && view !== 'vigilancia' && <p className="notice model-note">
+        <span>Modelo conservador aplicado a los casos con análisis completo. <Link href={locationFor('mapa', 'balance')}>Ver el barrido nacional en el mapa.</Link></span>
+      </p>}
+      {snapshot && view === 'panorama' && <>
+        <div className="overview-actions">
+          <Link className="button-link primary" href={locationFor('mapa', method)}><MapIcon size={17} aria-hidden="true" /> Abrir mapa 3D <ArrowUpRight size={15} aria-hidden="true" /></Link>
+          {method === 'balance' && snapshot.conservativeAvailable && <Link className="button-link" href={locationFor('mapa', 'conservative')}>
+            Ver modelo conservador en el mapa
+          </Link>}
+        </div>
+        <Overview snapshot={snapshot} method={method} bodies={visible} weekly={weekly} openDetails={openDetails} />
+      </>}
+      {snapshot && view === 'mapa' && <MapView key={method} method={method} snapshot={snapshot} bodies={visible} selected={current} select={selectBody} openDetails={openDetails} />}
+      {snapshot && view === 'monitoreo' && <Monitor key={method} method={method} snapshot={snapshot} weekly={weekly} openDetails={openDetails} />}
+      {snapshot && view === 'ficha' && (visible.length ? <Details key={method} method={method} bodies={visible} id={current?.body_id ?? visible[0].body_id}
+        select={selectBody} back={() => router.push(locationFor('mapa', method, current?.body_id ?? visible[0].body_id))} />
+        : <p className="notice">No hay cuerpos de agua disponibles.</p>)}
+      {view === 'vigilancia' && (weeklyError ? <div className="notice danger" role="alert">
         {weeklyError} <button type="button" onClick={() => { setWeeklyError(''); setWeeklyAttempt((value) => value + 1); }}>Reintentar</button>
       </div> : <Watch weekly={weekly} />)}
       {snapshot && <footer>Los diagnósticos se basan en coincidencia y consistencia estadística. Fuentes: Landsat, NASA POWER y FIRMS, NOAA, JRC, MapBiomas Bolivia, Hansen, HydroBASINS y OpenStreetMap.</footer>}

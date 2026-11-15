@@ -32,6 +32,11 @@ Para editar el frontend con recarga automática, usa `npm run dev:frontend`. Los
 y NestJS carga los datos procesados que incluye el repositorio. Los scripts científicos de Python se ejecutan aparte
 para descargar nuevas series, recalcular los diagnósticos, generar el barrido y actualizar los reportes de incendios.
 
+La barra superior lleva a **Panorama**, **Mapa 3D**, **Monitoreo**, **Fichas** e **Incendios**.
+En el mapa, usa **Balance hídrico** para explorar el barrido nacional y **Modelo conservador** para consultar
+los resultados de `mapa3`. El método y el cuerpo de agua seleccionado quedan en la URL. Puedes abrir directamente
+el [mapa con el modelo conservador](http://localhost:3000/?vista=mapa&metodo=conservador).
+
 ### Configuración local
 
 - **NestJS** (`backend/`) sirve diagnósticos, series de agua, imágenes, vigilancia e historial y guarda las
