@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { ArrowUpRight, Box, Circle, Droplets, Flame, Footprints, Gauge, ScanSearch, TrendingDown } from 'lucide-react';
-import { firstSuspect, humanEvidenceStates, number, signed, states, visibleStates,
+import { diagnosisMeaning, firstSuspect, humanEvidenceStates, number, signed, states, visibleStates,
   type Method, type Snapshot, type State, type WaterBody, type Weekly } from './data';
 import { Status } from './ui';
 import type { DonutSlice } from './glass-donut';
@@ -21,7 +21,7 @@ const lossLabels: Record<string, string> = { 'Lluvia menos evaporacion': 'Lluvia
 
 function counts(bodies: WaterBody[], order: State[]) {
   return order.map((state) => ({
-    label: states[state].label, color: color(state), value: bodies.filter((body) => body.state === state).length,
+    state, label: states[state].label, color: color(state), value: bodies.filter((body) => body.state === state).length,
   })).filter((row) => row.value);
 }
 
@@ -49,7 +49,7 @@ function VerdictDistribution({ bodies, national, method }: { bodies: WaterBody[]
   const highlighted = active == null ? undefined : slices[active];
   const segments = distribution(slices, group.length);
 
-  return <section className="panel mission-verdict">
+  return <section id="diagnosticos-inicio" className="panel mission-verdict" tabIndex={-1}>
     <div className="mission-chart-heading">
       <div><h2>Diagnósticos de los lagos</h2><p>Cuántos cuerpos de agua hay en cada categoría de análisis.</p></div>
       <div className="mission-chart-controls">
@@ -79,11 +79,12 @@ function VerdictDistribution({ bodies, national, method }: { bodies: WaterBody[]
         <p className="mission-eyebrow">{number(group.length)} cuerpos de agua</p>
         <ul className="mission-donut-legend" aria-label="Diagnósticos y cantidades">
           {slices.map((slice, index) => <li key={slice.label}><button type="button" className={active === index ? 'selected' : undefined}
+            aria-describedby={`overview-meaning-${index}`}
             onPointerEnter={() => setActive(index)} onPointerLeave={() => setActive(null)} onFocus={() => setActive(index)}
             onBlur={() => setActive(null)} onClick={() => setActive(index)}>
             <i style={{ background: slice.color }} aria-hidden="true" /><span>{slice.label}</span>
             <b>{number(slice.value)} <small>· {number(slice.value / group.length * 100, 1)} %</small></b>
-          </button></li>)}
+          </button><p id={`overview-meaning-${index}`} className="overview-diagnosis-tip" role="tooltip">{diagnosisMeaning[slice.state]}</p></li>)}
         </ul>
         {noWebGL && <p className="muted" role="status">Este navegador muestra el gráfico en 2D.</p>}
       </div>
@@ -164,7 +165,7 @@ export default function Overview({ bodies, snapshot, weekly, method, openDetails
         <p className="muted">Suma de los componentes negativos de los casos con análisis completo.</p>
       </section>
     </div>
-    <h2 className="overview-title">Cuerpos de agua con análisis completo</h2>
+    <h2 id="casos-lagos" className="overview-title" tabIndex={-1}>Cuerpos de agua con análisis completo</h2>
     <div className="overview-bodies">{sorted.map((body) => {
       const suspect = firstSuspect(body);
       return <article key={body.body_id} className="panel overview-body">

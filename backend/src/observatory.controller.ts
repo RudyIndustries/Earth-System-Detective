@@ -28,6 +28,9 @@ export class ObservatoryController {
   @Get('weekly')
   weekly() { return this.observatory.weekly(); }
 
+  @Get('fires/map')
+  fireMap() { return this.observatory.fireMap(); }
+
   @Get('results.json')
   download(@Query('method') method?: string) {
     return new StreamableFile(this.observatory.download(method), {

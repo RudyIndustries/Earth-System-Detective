@@ -13,6 +13,21 @@ export const states = {
 } as const;
 
 export type State = keyof typeof states;
+export const diagnosisMeaning: Record<State, string> = {
+  'Huella humana': 'El análisis encontró señales de actividad humana compatibles con la pérdida de agua. El diagnóstico necesita contrastarse con evidencia de campo.',
+  'Alerta temprana': 'Se detectaron cambios o presiones que vale la pena seguir antes de que la pérdida de agua sea mayor.',
+  Incalculable: 'Hay señales de pérdida, pero los datos disponibles no permiten estimar con confianza qué la explica.',
+  'Sin explicar': 'El agua disminuyó y las pruebas disponibles aún no permiten identificar la causa.',
+  'Causa climatica': 'La pérdida de agua observada es coherente con las variaciones del clima incluidas en el análisis.',
+  Intacto: 'El método no detectó una pérdida anormal de agua en el periodo analizado.',
+  'Evidencia reforzada de intervencion': 'Varias pruebas y registros independientes respaldan una posible intervención humana.',
+  'Indicios de intervencion humana': 'Coinciden algunas señales de actividad humana y cambios en el agua. Se necesita evidencia adicional para confirmar su relación.',
+  'Perdida no explicada': 'Se encontró una pérdida mayor que la esperada y la evidencia disponible aún no permite atribuirla.',
+  'Evidencia insuficiente': 'La calidad o cantidad de datos limita lo que el modelo puede concluir.',
+  'Sin perdida anomala detectada': 'La superficie observada se mantuvo dentro de los cambios esperados por el modelo.',
+};
+
+export const searchKey = (value: string) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('es').trim();
 export type Method = 'balance' | 'conservative';
 export const methodNames: Record<Method, string> = { balance: 'Balance hídrico', conservative: 'Modelo conservador' };
 export const methodStates: Record<Method, State[]> = {
@@ -151,6 +166,8 @@ export const number = (value: number, digits = 0) => new Intl.NumberFormat('es-B
   maximumFractionDigits: digits,
 }).format(value);
 export const signed = (value: number, digits = 0) => `${value > 0 ? '+' : ''}${number(value, digits)}`;
+export const waterChange = (value: number) => value < 0 ? `${number(Math.abs(value), 1)} % menos superficie de agua`
+  : value > 0 ? `${number(value, 1)} % más superficie de agua` : 'Sin cambio de superficie de agua';
 export const imageUrl = (folder: 'img' | 'context', filename: string) => `/api/images/${folder}/${filename}.png`;
 export const modelUrl = (path: string, method: Method) => `${path}?method=${method}`;
 export const firstSuspect = (body: WaterBody) => body.suspects?.find((suspect) => !suspect.indirect);

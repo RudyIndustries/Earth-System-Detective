@@ -31,7 +31,7 @@ export function MissionHome({ lakes, fires, vegetation }: { lakes: string; fires
         <p className="mission-image-credit">Lago Poopó, Bolivia <span>Landsat · 2023</span></p>
       </div>
     </section>
-    <section id="explorar" className="mission-topics">
+    <section id="explorar" className="mission-topics" tabIndex={-1}>
       <div className="mission-section-heading">
         <h2>Explora las cuencas</h2>
         <p>Elige qué observar en el agua y a su alrededor.</p>

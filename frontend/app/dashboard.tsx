@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowUpRight, Download, Flame, Layers, Map as MapIcon, ScanSearch, Search, Table2 } from 'lucide-react';
-import { api, downloadCsv, firstSuspect, humanEvidenceStates, methodNames, modelUrl, number, signed, states,
+import { ArrowDown, ArrowUpRight, CalendarDays, Download, Flame, Layers, Map as MapIcon, ScanSearch, Search, Table2 } from 'lucide-react';
+import { api, downloadCsv, firstSuspect, humanEvidenceStates, methodNames, modelUrl, number, searchKey, signed, states,
   visibleStates, type Method, type Snapshot, type State, type WaterBody, type Weekly } from './data';
 import { Status, DataTable } from './ui';
 import { MissionNav } from './mission-nav';
 import { MissionHome } from './mission-home';
+import { Guide } from './guide';
 
 const MapView = dynamic(() => import('./map-view'), {
   ssr: false,
@@ -24,16 +25,22 @@ const Overview = dynamic(() => import('./overview'), {
 const Vegetation = dynamic(() => import('./vegetation'), {
   loading: () => <p className="loading" role="status">Cargando vegetación…</p>,
 });
+const FireHistory = dynamic(() => import('./fire-history'), {
+  ssr: false,
+  loading: () => <section id="mapa-incendios" className="panel mission-data-panel" tabIndex={-1}>
+    <h2>Mapa histórico de focos</h2><p className="loading" role="status">Cargando el mapa…</p>
+  </section>,
+});
 const lakeViews = {
-  mapa: { name: 'Lagos de Bolivia', label: 'Mapa 3D', icon: MapIcon, description: 'Explora el relieve de Bolivia, selecciona una laguna y consulta cómo cambió su superficie.' },
-  monitoreo: { name: 'Monitoreo de lagos', label: 'Monitoreo', icon: Table2, description: 'Busca los lagos que te interesan, compara sus diagnósticos y descarga los datos filtrados.' },
-  ficha: { name: 'Fichas de lagos', label: 'Fichas', icon: ScanSearch, description: 'Compara imágenes, revisa la evolución del agua y consulta la evidencia de cada diagnóstico.' },
+  mapa: { name: 'Lagos de Bolivia', label: 'Mapa 3D', icon: MapIcon, description: 'Encuentra lagos por nombre, ubícalos en el mapa y mira cuánto cambió su superficie de agua. Las gotas flotantes llevan a los casos con ficha completa.' },
+  monitoreo: { name: 'Monitoreo de lagos', label: 'Monitoreo', icon: Table2, description: 'Compara la superficie, el cambio de agua y los diagnósticos de varios lagos en una tabla. Puedes filtrar la lista y descargar los resultados.' },
+  ficha: { name: 'Fichas de lagos', label: 'Fichas', icon: ScanSearch, description: 'Cada ficha empieza con un resumen del lago. Debajo encontrarás imágenes de antes y después, datos de agua y clima, y las pruebas del diagnóstico.' },
 } as const;
 const views = {
-  panorama: { name: 'Análisis de los lagos', description: 'Superficie de agua, diagnósticos y señales de presión sobre las cuencas.' },
+  panorama: { name: 'Análisis de los lagos', description: 'Mira cuántos lagos se analizaron, qué diagnósticos se encontraron y qué casos puedes explorar a fondo.' },
   ...lakeViews,
-  vigilancia: { name: 'Incendios', description: 'Consulta los focos térmicos semanales detectados cerca de los lagos y en sus cuencas.' },
-  vegetacion: { name: 'Vegetación', description: 'Explora la pérdida de bosque, las áreas quemadas y los cambios de uso del suelo alrededor de los lagos.' },
+  vigilancia: { name: 'Incendios', description: 'Ubica los focos de calor de Bolivia en el mapa histórico y revisa el reporte semanal guardado alrededor de los lagos.' },
+  vegetacion: { name: 'Vegetación', description: 'Encuentra cuánto bosque se perdió, qué área se quemó y cómo cambiaron los cultivos y las pasturas. Mira la serie por cuenca y compara dos imágenes de satélite.' },
 } as const;
 type View = keyof typeof views;
 
@@ -99,6 +106,8 @@ export function Dashboard() {
   const visible = snapshot?.results.filter((body) => body.body_id === selected || showControls ||
     !controls.has(body.body_id) || humanEvidenceStates.includes(body.state)) ?? [];
   const current = visible.find((body) => body.body_id === selected);
+  const mappedLake = current ?? snapshot?.national.find((body) => body.body_id === selected);
+  const searchLakes = [...(snapshot?.results ?? []), ...(snapshot?.national ?? [])];
   const vegetationId = snapshot?.results.find((body) => body.body_id === selected)?.body_id
     ?? snapshot?.results.find((body) => body.body_id === 'poopo')?.body_id ?? snapshot?.results[0]?.body_id;
   const links = {
@@ -138,7 +147,7 @@ export function Dashboard() {
               if (!event.target.checked && current && controls.has(current.body_id) && !humanEvidenceStates.includes(current.state)) {
                 selectBody(null);
               }
-            }} /> Mostrar gemelas de control
+            }} /> Mostrar lagos de comparación
           </label>}
           {snapshots.balance?.conservativeAvailable && <fieldset className="method-switch">
             <legend>Método de análisis</legend>
@@ -169,7 +178,8 @@ export function Dashboard() {
         </div>
         <Overview snapshot={snapshot} method={method} bodies={visible} weekly={weekly} openDetails={openDetails} />
       </>}
-      {snapshot && view === 'mapa' && <MapView key={method} method={method} snapshot={snapshot} bodies={visible} selected={current} select={selectBody} openDetails={openDetails} />}
+      {snapshot && view === 'mapa' && <MapView key={method} method={method} snapshot={snapshot} bodies={visible} searchBodies={searchLakes}
+        selected={mappedLake} select={selectBody} openDetails={openDetails} />}
       {snapshot && view === 'monitoreo' && <Monitor key={method} method={method} snapshot={snapshot} weekly={weekly} openDetails={openDetails} />}
       {snapshot && view === 'ficha' && (visible.length ? <Details key={method} method={method} bodies={visible} id={current?.body_id ?? visible[0].body_id}
         select={selectBody} back={() => router.push(locationFor('mapa', method, current?.body_id ?? visible[0].body_id))} />
@@ -177,11 +187,25 @@ export function Dashboard() {
       {snapshot && view === 'vegetacion' && (vegetationId
         ? <Vegetation bodies={snapshot.results} id={vegetationId} method={method} select={selectBody} details={locationFor('ficha', method, vegetationId)} />
         : <p className="notice">No hay cuerpos de agua con datos de vegetación.</p>)}
-      {view === 'vigilancia' && (weeklyError ? <div className="notice danger" role="alert">
-        {weeklyError} <button type="button" onClick={() => { setWeeklyError(''); setWeeklyAttempt((value) => value + 1); }}>Reintentar</button>
-      </div> : <Watch weekly={weekly} map={links.lagos} />)}
+      {view === 'vigilancia' && <>
+        <nav className="section-jump" aria-label="Qué encontrarás en Incendios">
+          <a className="button-link" href="#mapa-incendios"><MapIcon size={17} aria-hidden="true" /> Mapa histórico <ArrowDown size={15} aria-hidden="true" /></a>
+          <a className="button-link" href="#reporte-incendios"><CalendarDays size={17} aria-hidden="true" /> Reporte por lagos <ArrowDown size={15} aria-hidden="true" /></a>
+        </nav>
+        <FireHistory />
+        <section id="reporte-incendios" className="fire-weekly" aria-labelledby="fire-weekly-title" tabIndex={-1}>
+          <div className="mission-section-heading">
+            <h2 id="fire-weekly-title">Reporte semanal por lago</h2>
+            <p>Compara la semana guardada con lo que suele detectarse en la misma época del año.</p>
+          </div>
+          {weeklyError ? <div className="notice danger" role="alert">{weeklyError}
+            <button type="button" onClick={() => { setWeeklyError(''); setWeeklyAttempt((value) => value + 1); }}>Reintentar</button>
+          </div> : <Watch weekly={weekly} map={links.lagos} />}
+        </section>
+      </>}
       <footer>Los diagnósticos se basan en coincidencia y consistencia estadística. Fuentes: Landsat, NASA POWER y FIRMS, NOAA, JRC, MapBiomas Bolivia, Hansen, HydroBASINS y OpenStreetMap.</footer>
     </main>
+    <Guide key={view} view={view} />
   </div>;
 }
 
@@ -190,6 +214,7 @@ function Monitor({ snapshot, weekly, method, openDetails }: { snapshot: Snapshot
   const [state, setState] = useState<State | ''>('');
   const [mode, setMode] = useState('');
   const [minimum, setMinimum] = useState('');
+  const query = searchKey(search);
   const controls = new Set(snapshot.results.map((body) => body.control_id).filter(Boolean));
   const stateList = visibleStates(method, [...snapshot.results, ...snapshot.national]);
   const fires = new Map(weekly?.report?.rows.map((body) => [body.body_id, body]));
@@ -197,7 +222,7 @@ function Monitor({ snapshot, weekly, method, openDetails }: { snapshot: Snapshot
     ...snapshot.results.map((body) => ({ body, mode: controls.has(body.body_id) && !humanEvidenceStates.includes(body.state) ? 'Gemela de control' : 'Completo' })),
     ...snapshot.national.map((body) => ({ body, mode: 'Barrido nacional' })),
   ].filter((row) => (!state || row.body.state === state) && (!mode || row.mode === mode) &&
-    row.body.name.toLocaleLowerCase('es').includes(search.trim().toLocaleLowerCase('es')) &&
+    searchKey(row.body.name).includes(query) &&
     (!Number(minimum) || row.body.trend.change_pct <= -Math.abs(Number(minimum))))
     .sort((a, b) => stateList.indexOf(a.body.state) - stateList.indexOf(b.body.state) || a.body.trend.change_pct - b.body.trend.change_pct)
     .map(({ body, mode }) => {
@@ -211,7 +236,7 @@ function Monitor({ snapshot, weekly, method, openDetails }: { snapshot: Snapshot
     });
 
   return <>
-    <div className="toolbar panel">
+    <div className="toolbar panel" id="filtros-monitoreo" tabIndex={-1}>
       <label><span><Search size={15} aria-hidden="true" /> Buscar por nombre</span><input type="search" placeholder="Nombre del lago o laguna"
         value={search} onChange={(event) => setSearch(event.target.value)} /></label>
       <label>Estado<select value={state} onChange={(event) => setState(event.target.value as State | '')}><option value="">Todos</option>
@@ -220,7 +245,7 @@ function Monitor({ snapshot, weekly, method, openDetails }: { snapshot: Snapshot
         <option>Completo</option><option>Gemela de control</option>{snapshot.national.length > 0 && <option>Barrido nacional</option>}</select></label>
       <label>Pérdida mínima (%)<input type="number" min="0" value={minimum} onChange={(event) => setMinimum(event.target.value)} placeholder="0" /></label>
     </div>
-    <div className="section-bar"><p>{rows.length} {rows.length === 1 ? 'cuerpo de agua' : 'cuerpos de agua'}</p>
+    <div className="section-bar" id="datos-monitoreo" tabIndex={-1}><p>{rows.length} {rows.length === 1 ? 'cuerpo de agua' : 'cuerpos de agua'}</p>
       <button type="button" disabled={!rows.length} onClick={() => downloadCsv(rows.map(({ body, mode, share, fire, suspect }) => ({
         'Cuerpo de agua': body.name, Estado: states[body.state].label, 'Análisis': mode, Confianza: body.confidence,
         Pruebas: `${body.n_pass}/3`, 'Cambio %': body.trend.change_pct, 'Clima explica %': share,
@@ -252,15 +277,22 @@ function Watch({ weekly, map }: { weekly?: Weekly; map: string }) {
   const alerts = report?.rows.filter((entry) => entry.alerta).length ?? 0;
   const counts = report?.rows.flatMap((row) => row.areas[area] ? [{ name: row.name, ...row.areas[area] }] : []) ?? [];
   const scale = Math.max(1, ...counts.map(({ focos, normal }) => Math.max(focos, normal)));
+  const drill = Boolean(report?.notified.toLowerCase().includes('simulacro'));
+  const date = report ? new Intl.DateTimeFormat('es-BO', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(report.week_end + 'T00:00:00Z')) : '';
   return <>
     {report ? <>
-      <div className={`notice ${alerts ? 'danger' : 'success'}`}><Flame size={20} aria-hidden="true" /><div>
-        <strong>{alerts ? `${alerts} cuerpos de agua con alerta de incendios` : 'Sin alertas en el último reporte'}</strong>
-        <p>Reporte guardado de la semana al {report.week_end} · Revisado {report.checked_at.replace('T', ' ').slice(0, 16)} · {report.notified}</p>
+      <div className="fire-week-status panel"><Flame size={26} aria-hidden="true" /><div>
+        <span className="mission-eyebrow">{drill ? 'Simulacro · reporte guardado' : 'Reporte guardado'}</span>
+        <strong>{alerts ? `${alerts} ${alerts === 1 ? 'lago con alerta' : 'lagos con alerta'}` : 'Sin alertas en esta semana'}</strong>
+        <p>Semana que terminó el {date}.</p>
+        {drill && <p>El reporte se ejecutó como prueba, sin enviar avisos.</p>}
+        <details><summary>Datos del reporte</summary>
+          <p>Revisado el {report.checked_at.replace('T', ' ').slice(0, 16)}. Estado del envío: {report.notified}.</p>
+        </details>
       </div></div>
       <section className="panel mission-data-panel">
         <div className="mission-chart-heading">
-          <div><h2>Focos térmicos por lago</h2><p>La referencia es el promedio de la misma semana en los cinco años anteriores.</p></div>
+          <div><h3>Focos térmicos por lago</h3><p>Elige si quieres ver solo los alrededores del lago o toda la cuenca que le aporta agua.</p></div>
           <label><span id="fire-area-label">Área</span><select aria-labelledby="fire-area-label"
             value={area} onChange={(event) => setArea(event.target.value)}>
             <option value="cuenca">Toda la cuenca</option><option value="cerca">Cerca de la laguna</option>
@@ -268,22 +300,27 @@ function Watch({ weekly, map }: { weekly?: Weekly; map: string }) {
         </div>
         <div className="mission-fire-key"><span><i /> Semana del reporte</span><span><i /> Promedio histórico</span></div>
         {counts.length ? <ul className="mission-fire-chart">
-          {counts.map(({ name, focos, normal }) => <li key={name}><strong>{name}</strong>
+          {counts.map(({ name, focos, normal, alerta }) => <li key={name}><strong>{name}{alerta && <small className="fire-alert-tag">Alerta</small>}</strong>
             <div aria-label={`${focos} focos esta semana y ${number(normal, 1)} de promedio`}>
               <div><i style={{ width: `${focos / scale * 100}%` }} /><b>{number(focos)}</b></div>
               <div><i style={{ width: `${normal / scale * 100}%` }} /><b>{number(normal, 1)}</b></div>
             </div>
           </li>)}
         </ul> : <p className="notice">El reporte no incluye focos para esta área.</p>}
-        <Link className="button-link" href={map}>Abrir mapa y sus capas <ArrowUpRight size={16} aria-hidden="true" /></Link>
+        <Link className="button-link" href={map}>Explorar lagos en el mapa <ArrowUpRight size={16} aria-hidden="true" /></Link>
       </section>
-      <DataTable rows={report.rows.flatMap((body) => Object.entries(body.areas).map(([area, item]) => ({
+      <details className="panel fire-report-details">
+        <summary>Ver tabla del reporte</summary>
+        <DataTable rows={report.rows.flatMap((body) => Object.entries(body.areas).map(([area, item]) => ({
         'Cuerpo de agua': body.name, Estado: states[body.state].label, Área: area === 'cerca' ? 'Cerca de la laguna' : 'Toda la cuenca',
         'Focos esta semana': item.focos, 'Normal para esta semana': item.normal, Alerta: item.alerta ? 'Sí' : 'No',
-      })))} />
-      <p className="muted">NASA FIRMS. Alerta con al menos 5 focos y el doble del promedio para la misma semana de los cinco años anteriores.</p>
+        })))} />
+      </details>
+      <p className="muted">Referencia: la misma semana de los cinco años anteriores. El sistema marca alerta en un lago en riesgo si detecta 5 focos o más y al menos el doble de lo habitual.</p>
     </> : <p className="notice">Aún no se ha generado un reporte de incendios.</p>}
-    <h2 className="section-title"><Layers size={19} aria-hidden="true" /> Historial</h2>
-    <DataTable rows={weekly.history} />
+    <details className="panel fire-report-details">
+      <summary><Layers size={17} aria-hidden="true" /> Historial de reportes</summary>
+      <DataTable rows={weekly.history} />
+    </details>
   </>;
 }

@@ -63,7 +63,7 @@ export default function Vegetation({ bodies, id, method, select, details }: {
     {current?.data && <>
       <section className="panel mission-data-panel" aria-labelledby="vegetation-series">
         <div className="mission-chart-heading">
-          <div><h2 id="vegetation-series">Evolución de la cobertura</h2><p>{item.description}</p></div>
+          <div><h2 id="vegetation-series" tabIndex={-1}>Evolución de la cobertura</h2><p>{item.description}</p></div>
           <div className="mission-chart-controls">
             <label><span id="vegetation-area-label">Área</span><select aria-labelledby="vegetation-area-label"
               value={selectedArea} onChange={(event) => setArea(event.target.value as Area)}>
@@ -97,7 +97,7 @@ export default function Vegetation({ bodies, id, method, select, details }: {
       </section>
       <section className="mission-imagery" aria-labelledby="land-cover-images">
         <div className="mission-section-heading">
-          <h2 id="land-cover-images">El paisaje desde satélite</h2>
+          <h2 id="land-cover-images" tabIndex={-1}>El paisaje desde satélite</h2>
           {context && <p>Comparación de {context.years[0]} a {context.years[1]} · Imagen Landsat de {number(context.window_km)} km de ancho.</p>}
         </div>
         {context ? <>

@@ -187,6 +187,12 @@ export class ObservatoryService {
     return { saved };
   }
 
+  fireMap() {
+    const archive = this.json(join(this.root, 'data', 'real', 'fires-map.json'), null);
+    if (!archive) throw new NotFoundException('El archivo histórico de focos MODIS no está disponible.');
+    return archive;
+  }
+
   weekly() {
     const report = this.json(join(this.data, 'alertas_semanales.json'), null);
     const history = this.withDb((db) => {

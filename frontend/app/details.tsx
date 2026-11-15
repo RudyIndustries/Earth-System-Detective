@@ -1,15 +1,24 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { ArrowLeft, CircleCheck, CircleDashed, Download, ExternalLink } from 'lucide-react';
-import { api, firstSuspect, imageUrl, modelUrl, number, reviewOutcomes, signed, states,
+import { ArrowLeft, CircleCheck, CircleDashed, Download, Droplets, ExternalLink, ScanSearch } from 'lucide-react';
+import { api, diagnosisMeaning, firstSuspect, imageUrl, modelUrl, number, reviewOutcomes, signed, states, waterChange,
   type Audit, type BodyDetail, type Method, type WaterBody } from './data';
 import { ClimateCharts, CrossChecks, WaterCharts } from './charts';
 import { DataTable, Status } from './ui';
+import { LakeSearch } from './lake-search';
 
-const tabs = ['Antes y después', 'Clima y causas', 'Agua natural vs. artificial', 'Pruebas y sospechosos', 'Alrededores', 'Auditoría'] as const;
+const contents = {
+  'Antes y después': 'Compara el paisaje en dos fechas y, cuando esté disponible, muestra el agua detectada o los cambios en los alrededores.',
+  'Clima y causas': 'Compara el agua observada con lo que el modelo espera según el clima y revisa las mediciones de otras fuentes.',
+  'Agua natural y artificial': 'Compara el lago con el agua natural de la zona y la de embalses, canales y otros usos.',
+  'Pruebas y posibles causas': 'Lee qué pruebas se hicieron y qué actividades se investigaron como posibles factores.',
+  Alrededores: 'Ubica poblaciones, minas, represas y otros sitios registrados cerca del lago.',
+  Auditoría: 'Consulta el historial técnico de corridas y las revisiones humanas registradas.',
+} as const;
+const tabs = Object.keys(contents) as (keyof typeof contents)[];
 const testLabels: Record<string, string> = {
-  clima: 'Lo que el clima no explica', control: 'Gemela de control', coincidencia: 'Coincidencia en el tiempo',
+  clima: 'Cuánto explica el clima', control: 'Comparación con otro lago', coincidencia: 'Cuándo ocurrieron los cambios',
 };
 const changes: Record<string, string> = {
   mining_ha: 'mining', mining_water_ha: 'mining', urban_ha: 'urban', population: 'urban', night_lights: 'urban',
@@ -37,50 +46,65 @@ export function Details({ bodies, id, method, select, back }: {
   const detail = current?.detail;
   const body = detail?.result;
   const quality = body?.data_quality;
+  const suspect = body && firstSuspect(body);
+  const lastYears = body?.years.slice(-5);
 
   return <>
-    <div className="body-picker panel">
+    <div className="body-picker panel detail-picker">
+      <LakeSearch id="buscar-ficha" bodies={bodies} onSelect={select} />
       <button type="button" onClick={back}><ArrowLeft size={16} aria-hidden="true" /> Volver al mapa</button>
-      <label>Cuerpo de agua<select value={id} onChange={(event) => select(event.target.value)}>
-        {bodies.map((body) => <option key={body.body_id} value={body.body_id}>{body.name}</option>)}</select></label>
     </div>
     {current?.error && <div className="notice danger" role="alert">
       {current.error} <button type="button" onClick={() => { setLoaded(undefined); setAttempt((value) => value + 1); }}>Reintentar</button>
     </div>}
     {!current && <p role="status" className="loading">Cargando ficha…</p>}
     {body && detail && <>
-      <div className="detail-heading"><div><h2>{body.name}</h2><p>{body.department}</p></div><Status state={body.state} /></div>
+      <section id="resumen-ficha" className="panel detail-summary" tabIndex={-1} aria-labelledby="lake-case-name">
+        <div className="detail-heading">
+          <div><p className="mission-eyebrow">{body.department ?? 'Ficha del lago'}</p><h2 id="lake-case-name">{body.name}</h2></div>
+          <Status state={body.state} />
+        </div>
+        <div className="detail-answer">
+          <div><Droplets size={21} aria-hidden="true" /><h3>¿Qué pasó con el agua?</h3>
+            <strong>{waterChange(body.trend.change_pct)}</strong>
+            <p>Promedio de los últimos cinco años del análisis{lastYears?.length ? ` (${lastYears[0]}–${lastYears.at(-1)})` : ''},
+              comparado con el promedio histórico hasta {body.baseline_end}.</p>
+          </div>
+          <div><ScanSearch size={21} aria-hidden="true" /><h3>¿Qué significa el diagnóstico?</h3>
+            <p>{diagnosisMeaning[body.state]}</p>{suspect && <p>Principal señal investigada: <b>{suspect.label}</b>.</p>}
+          </div>
+        </div>
+      </section>
       <div className="metrics">
-        <div className="panel"><span>Cambio desde el periodo base</span><strong>{signed(body.trend.change_pct)}%</strong></div>
-        <div className="panel" title={`Mann-Kendall p = ${number(body.trend.p, 3)} · Ajustado p = ${number(body.trend.p_holm, 3)}`}>
-          <span>Tendencia de Sen</span><strong>{signed(body.trend.sen_ha_per_year, 1)} ha/año</strong></div>
+        <div className="panel"><span>Superficie de referencia</span><strong>{number(body.baseline_mean_ha)} ha</strong></div>
+        <div className="panel"><span>Cambio estimado por año</span><strong>{signed(body.trend.sen_ha_per_year, 1)} ha/año</strong></div>
         <div className="panel"><span>{body.method_version ? 'Nivel de evidencia' : 'Confianza'}</span><strong>{body.confidence}</strong><small>{body.n_pass} de 3 pruebas favorables</small></div>
-        <div className="panel"><span>{body.method_version ? 'Presión priorizada' : 'Sospechoso principal'}</span><strong>{firstSuspect(body)?.label ?? '—'}</strong></div>
+        <div className="panel"><span>Último año analizado</span><strong>{body.years.at(-1) ?? '—'}</strong></div>
       </div>
       <div className="notice"><div>{states[body.state].action}
         {body.climate_share != null && <p>El cambio atribuible al clima equivale al {number(100 * Math.min(body.climate_share, 9.99))} % de la pérdida entre el periodo base y los últimos cinco años.</p>}
       </div></div>
-      {quality?.r_jrc != null && <p className={quality.level === 'baja' ? 'notice warning' : 'muted'}>
-        Calidad de datos {quality.level}. Correlación entre Landsat y JRC {number(quality.r_jrc, 2)}.
-        {quality.interpolated_years?.length ? ` Años interpolados: ${quality.interpolated_years.join(', ')}.` : ''}
-      </p>}
-      {!!body.why?.length && <div className="notice reasons"><div>
-        <strong>{body.state === 'Incalculable' ? 'Por qué es incalculable' : 'Motivos del diagnóstico'}</strong>
-        <ul>{body.why.map((reason) => <li key={reason}>{reason}</li>)}</ul>
-      </div></div>}
-      {body.quality && <p className={body.quality.eligible && body.model_validation?.reliable ? 'muted' : 'notice warning'}>
-        Modelo seleccionado: {body.selected_model}. {body.quality.base_observed_n} años de agua observada en el periodo base,
-        {body.quality.imputed_water_n} años imputados excluidos. {body.quality.reasons.join(' ')}
-      </p>}
-      <section className="panel detail-panel" aria-label="Datos del cuerpo de agua">
+      <details className="panel detail-method">
+        <summary>Cómo se llegó al diagnóstico</summary>
+        {!!body.why?.length && <ul>{body.why.map((reason) => <li key={reason}>{reason}</li>)}</ul>}
+        {quality?.r_jrc != null && <p>Calidad de datos {quality.level}. Correlación Landsat–JRC {number(quality.r_jrc, 2)}.
+          {quality.interpolated_years?.length ? ` Años estimados: ${quality.interpolated_years.join(', ')}.` : ''}
+        </p>}
+        {body.quality && <p>Modelo: {body.selected_model}. {body.quality.base_observed_n} años de agua observada en el periodo de referencia,
+          {body.quality.imputed_water_n} años estimados y excluidos. {body.quality.reasons.join(' ')}</p>}
+        <p className="muted">Prueba de tendencia Mann–Kendall, p = {number(body.trend.p, 3)} y p ajustado = {number(body.trend.p_holm, 3)}.</p>
+      </details>
+      <section id="secciones-ficha" className="panel detail-panel" aria-label="Datos del cuerpo de agua" tabIndex={-1}>
+        <div className="detail-tab-intro"><h2>Explora la ficha</h2></div>
         <nav aria-label="Secciones de la ficha" className="tabs">
           {tabs.map((name) => <button type="button" key={name} aria-pressed={tab === name} onClick={() => setTab(name)}>{name}</button>)}
         </nav>
         <div className="tab-content">
+          <p className="detail-tab-description">{contents[tab]}</p>
           {tab === 'Antes y después' && <Compare key={id} detail={detail} />}
           {tab === 'Clima y causas' && <><ClimateCharts body={body} /><CrossChecks detail={detail} /></>}
-          {tab === 'Agua natural vs. artificial' && <WaterCharts key={id} detail={detail} />}
-          {tab === 'Pruebas y sospechosos' && <Evidence body={body} />}
+          {tab === 'Agua natural y artificial' && <WaterCharts key={id} detail={detail} />}
+          {tab === 'Pruebas y posibles causas' && <Evidence body={body} />}
           {tab === 'Alrededores' && <Surroundings detail={detail} />}
           {tab === 'Auditoría' && <AuditView key={id} body={body} method={method} />}
         </div>
@@ -134,6 +158,7 @@ function Compare({ detail }: { detail: BodyDetail }) {
         <span className="compare-divider" style={{ left: `${slider}%` }} aria-hidden="true"><b>↔</b></span>
         <input aria-label="Deslizador antes y después" type="range" min="0" max="100" value={slider} onChange={(event) => setSlider(Number(event.target.value))} />
       </div>
+      <p className="compare-instruction">Arrastra la división hacia un lado para comparar el antes y el después.</p>
       {isContext ? <>
         <label className="control-check"><input type="checkbox" checked={showChanges} onChange={(event) => setShowChanges(event.target.checked)} /> Mostrar cambios alrededor</label>
         {showChanges && <div className="legend">{Object.entries(context.legend).map(([key, item]) => <span key={key}><i style={{ background: item.color }} />
