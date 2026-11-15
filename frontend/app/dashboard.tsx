@@ -144,7 +144,7 @@ export function Dashboard() {
         </div>}
       </header>
       {currentError && view !== 'vigilancia' && <div className="notice danger" role="alert">
-        <p>{currentError} Comprueba que NestJS esté iniciado.</p>
+        <p>{currentError}</p>
         <button type="button" onClick={() => { setError(undefined); setAttempt((value) => value + 1); }}>Reintentar</button>
       </div>}
       {!snapshot && !currentError && view !== 'vigilancia' && <p className="loading" role="status">Cargando datos del detector…</p>}

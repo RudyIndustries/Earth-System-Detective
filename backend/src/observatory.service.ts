@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
 import Database from 'better-sqlite3';
 import { parse } from 'csv-parse/sync';
+import { dataRoot } from './data-root';
 
 interface Result {
   body_id: string;
@@ -24,7 +25,7 @@ export const reviewOutcomes = ['En revision', 'Confirmado en campo', 'Falso posi
 
 @Injectable()
 export class ObservatoryService {
-  private readonly root = resolve(__dirname, '../../');
+  private readonly root = dataRoot();
   private readonly national = join(this.root, 'data', 'national');
   private readonly jsonCache = new Map<string, { mtime: number; size: number; value: unknown }>();
 
@@ -56,7 +57,7 @@ export class ObservatoryService {
 
   private results(dir = this.data) {
     const file = join(dir, 'results.json');
-    if (!existsSync(file)) throw new NotFoundException('No se encontró results.json.');
+    if (!existsSync(file)) throw new ServiceUnavailableException('Los datos del observatorio no están disponibles en este despliegue.');
     return this.json<Result[]>(file, []);
   }
 

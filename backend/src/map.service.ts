@@ -2,6 +2,7 @@ import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common'
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { PNG } from 'pngjs';
+import { dataRoot } from './data-root';
 
 // The official npm client generates its image and geometry methods at initialization.
 const ee = require('@google/earthengine');
@@ -39,7 +40,7 @@ export class MapService {
     const root = resolve(__dirname, '../../');
     const credentials = process.env.GOOGLE_APPLICATION_CREDENTIALS;
     const key = JSON.parse(process.env.GEE_SERVICE_ACCOUNT_KEY || readFileSync(resolve(root, credentials ?? ''), 'utf8'));
-    const settings = resolve(root, 'config', 'settings.json');
+    const settings = resolve(dataRoot(), 'config', 'settings.json');
     const project = process.env.UMA_GEE_PROJECT ||
       (existsSync(settings) ? JSON.parse(readFileSync(settings, 'utf8')).gee_project : undefined) ||
       key.project_id;

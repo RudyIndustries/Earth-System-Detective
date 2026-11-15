@@ -8,9 +8,11 @@
     "backend": {
       "root": "backend",
       "framework": "nestjs",
+      "buildCommand": "npm run build:vercel",
+      "outputDirectory": "dist",
       "functions": {
-        "src/main.ts": {
-          "includeFiles": "../{config/settings.json,data/national/{results,agua_artificial}.json,data/real/{*.json,context/*,img/*.png},data/{real,sample}/{results.json,suspects.csv,uma.db,validation/{results.json,uma.db}}}"
+        "dist/main.js": {
+          "includeFiles": "dist/observatory-data/**/*"
         }
       }
     }
