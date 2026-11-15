@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, CircleHelp, Compass, X } from 'lucide-react';
 
 const guides = {
@@ -38,25 +38,48 @@ export type GuideView = keyof typeof guides;
 
 export function Guide({ view }: { view: GuideView }) {
   const [index, setIndex] = useState(0);
+  const [targetId, setTargetId] = useState<string>();
+  const [targetMissing, setTargetMissing] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const steps = guides[view];
   const step = steps[index];
   const last = index === steps.length - 1;
 
-  function goToStep() {
-    dialog.current?.close();
-    const target = document.getElementById(step.target);
-    if (!target) return;
-    target.focus({ preventScroll: true });
-    target.scrollIntoView({ block: 'center' });
+  useEffect(() => {
+    if (!targetId) return;
+    const focusTarget = () => {
+      const target = document.getElementById(targetId);
+      if (!target || !dialog.current?.open) return false;
+      dialog.current.close();
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ block: 'center' });
+      return true;
+    };
+    if (focusTarget()) return;
+
+    const observer = new MutationObserver(() => {
+      if (focusTarget()) observer.disconnect();
+    });
+    const timeout = window.setTimeout(() => {
+      setTargetId(undefined);
+      setTargetMissing(true);
+    }, 6000);
+    observer.observe(document.getElementById('contenido') ?? document.body, { childList: true, subtree: true });
+    return () => { observer.disconnect(); window.clearTimeout(timeout); };
+  }, [targetId]);
+
+  function changeStep(next: number) {
+    setTargetId(undefined);
+    setTargetMissing(false);
+    setIndex(next);
   }
 
   return <>
     <button type="button" className="mission-guide-button" aria-haspopup="dialog" onClick={() => {
-      setIndex(0);
+      changeStep(0);
       dialog.current?.showModal();
     }}><CircleHelp size={21} aria-hidden="true" /> Guía</button>
-    <dialog className="mission-guide" ref={dialog} aria-labelledby="mission-guide-title" onClick={(event) => {
+    <dialog className="mission-guide" ref={dialog} aria-labelledby="mission-guide-title" onClose={() => setTargetId(undefined)} onClick={(event) => {
       if (event.target === event.currentTarget) dialog.current?.close();
     }}>
       <div className="guide-content">
@@ -67,10 +90,14 @@ export function Guide({ view }: { view: GuideView }) {
           <h2 id="mission-guide-title">{step.title}</h2>
           <p>{step.text}</p>
         </div>
-        <button type="button" className="guide-jump" onClick={goToStep}><ArrowDown size={16} aria-hidden="true" /> Mostrar en la página</button>
+        <button type="button" className="guide-jump" disabled={!!targetId} onClick={() => {
+          setTargetMissing(false);
+          setTargetId(step.target);
+        }}><ArrowDown size={16} aria-hidden="true" /> {targetId ? 'Buscando el control…' : 'Mostrar en la página'}</button>
+        {targetMissing && <p className="muted" role="status">El control aún no está disponible. Cierra la guía para ver el estado de la sección.</p>}
         <div className="guide-actions">
-          <button type="button" disabled={index === 0} onClick={() => setIndex(index - 1)}><ArrowLeft size={16} aria-hidden="true" /> Anterior</button>
-          <button type="button" className="primary" onClick={() => last ? dialog.current?.close() : setIndex(index + 1)}>
+          <button type="button" disabled={index === 0} onClick={() => changeStep(index - 1)}><ArrowLeft size={16} aria-hidden="true" /> Anterior</button>
+          <button type="button" className="primary" onClick={() => last ? dialog.current?.close() : changeStep(index + 1)}>
             {last ? 'Terminar' : 'Siguiente'} {!last && <ArrowRight size={16} aria-hidden="true" />}
           </button>
         </div>
