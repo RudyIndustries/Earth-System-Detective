@@ -77,18 +77,18 @@ build/
 # ─────────────────────────────────────────────────────────────
 # CSV completos de HDX (~50-200 MB) → no van al repo.
 # Se bajan de data.humdata.org según se documenta en README.
-data/*.csv
-data/*.csv.gz
-!data/.gitkeep
+# data/*.csv
+# data/*.csv.gz
+# !data/.gitkeep
 
 # GeoJSON pesados (~30 MB cada uno) → no van al repo.
 # Se bajan de HDX (COD-AB) según se documenta en README.
 bol_admin_boundaries.geojson/*.geojson
 
-# GeoJSON simplificado generado por scripts/prepare_geojson.py
-data/bol_admin2_simplified.geojson
-data/bol_admin2_simplified.geojson.gz
-data/regions_meta.json
+# # GeoJSON simplificado generado por scripts/prepare_geojson.py
+# data/bol_admin2_simplified.geojson
+# data/bol_admin2_simplified.geojson.gz
+# data/regions_meta.json
 
 # ─────────────────────────────────────────────────────────────
 # Sistema operativo
