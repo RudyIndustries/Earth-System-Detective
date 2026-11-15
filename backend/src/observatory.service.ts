@@ -20,6 +20,8 @@ interface Place { lat: number; lon: number }
 interface SuspectRow { body_id: string; year: string; suspect: string; value: string; area?: string }
 interface Context { years: [number, number]; window_km: number; changes_ha: Record<string, number> }
 interface Verification { lagunas?: Record<string, unknown> }
+const waterSignals = new Set(['natural_water_ha', 'artificial_water_ha', 'mining_water_ha', 'desaguadero_water_ha']);
+const vegetationSignals = new Set(['forest_loss_ha', 'burned_ha', 'pasture_ha', 'agri_ha', 'dry_crop_ha']);
 
 export const reviewOutcomes = ['En revision', 'Confirmado en campo', 'Falso positivo', 'Requiere mas datos'];
 
@@ -98,19 +100,21 @@ export class ObservatoryService {
       return match ? [{ year: Number(match[1]), mask: images.has(`${id}_${match[1]}_water.png`) }] : [];
     }).sort((a, b) => a.year - b.year);
     const csv = join(dir, 'suspects.csv');
-    const waterTypes = new Set(['natural_water_ha', 'artificial_water_ha', 'mining_water_ha', 'desaguadero_water_ha']);
-    const water = existsSync(csv) ? (parse(readFileSync(csv), {
+    const signals = existsSync(csv) ? (parse(readFileSync(csv), {
       columns: true, skip_empty_lines: true, bom: true,
-    }) as SuspectRow[]).flatMap((row) => (
-      row.body_id === id && row.area && waterTypes.has(row.suspect) && row.value.trim() !== '' && Number.isFinite(Number(row.value))
-        ? [{ area: row.area, year: Number(row.year), suspect: row.suspect, value: Number(row.value) }]
-        : []
-    )) : [];
+    }) as SuspectRow[]).flatMap((row) => {
+      if (row.body_id !== id || !row.area || !row.value?.trim() || !row.year?.trim()) return [];
+      const year = Number(row.year);
+      const value = Number(row.value);
+      return Number.isInteger(year) && Number.isFinite(value) ? [{ area: row.area, year, suspect: row.suspect, value }] : [];
+    }) : [];
+    const water = signals.filter(({ suspect }) => waterSignals.has(suspect));
+    const vegetation = signals.filter(({ suspect }) => vegetationSignals.has(suspect));
     const verification = this.json<Verification | null>(join(dir, 'verificacion.json'), null)?.lagunas?.[id] ?? null;
     const river = id === 'poopo' || id === 'uru_uru' || id === 'titicaca_menor'
       ? this.json(join(dir, 'desaguadero.json'), null)
       : null;
-    return { result, context, imageYears, places: this.places(id, dir), water, verification, river };
+    return { result, context, imageYears, places: this.places(id, dir), water, vegetation, verification, river };
   }
 
   image(folder: string, filename: string) {

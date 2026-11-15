@@ -104,6 +104,7 @@ export interface BodyDetail {
   context: { years: [number, number]; window_km: number; changes_ha: Record<string, number>;
     legend: Record<string, { label: string; color: string }> } | null;
   water: { area: Area; year: number; suspect: string; value: number }[];
+  vegetation?: { area: Area; year: number; suspect: string; value: number }[];
   verification: {
     r_agua_landsat_mapbiomas: number | null; r_lluvia_power_chirps: number | null;
     lluvia_media_power_mm: number | null; lluvia_media_chirps_mm: number | null;

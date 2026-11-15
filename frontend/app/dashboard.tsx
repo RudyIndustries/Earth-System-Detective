@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowUpRight, Download, Droplets, Flame, Layers, LayoutDashboard, Map as MapIcon, ScanSearch, Search, Table2 } from 'lucide-react';
+import { ArrowUpRight, Download, Flame, Layers, Map as MapIcon, ScanSearch, Search, Table2 } from 'lucide-react';
 import { api, downloadCsv, firstSuspect, humanEvidenceStates, methodNames, modelUrl, number, signed, states,
   visibleStates, type Method, type Snapshot, type State, type WaterBody, type Weekly } from './data';
 import { Status, DataTable } from './ui';
+import { MissionNav } from './mission-nav';
+import { MissionHome } from './mission-home';
 
 const MapView = dynamic(() => import('./map-view'), {
   ssr: false,
@@ -17,14 +19,21 @@ const Details = dynamic(() => import('./details').then((module) => module.Detail
   loading: () => <p className="loading" role="status">Cargando ficha…</p>,
 });
 const Overview = dynamic(() => import('./overview'), {
-  loading: () => <p className="loading" role="status">Cargando panorama…</p>,
+  loading: () => <p className="loading" role="status">Cargando el análisis de los lagos…</p>,
 });
+const Vegetation = dynamic(() => import('./vegetation'), {
+  loading: () => <p className="loading" role="status">Cargando vegetación…</p>,
+});
+const lakeViews = {
+  mapa: { name: 'Lagos de Bolivia', label: 'Mapa 3D', icon: MapIcon, description: 'Explora el relieve de Bolivia, selecciona una laguna y consulta cómo cambió su superficie.' },
+  monitoreo: { name: 'Monitoreo de lagos', label: 'Monitoreo', icon: Table2, description: 'Busca los lagos que te interesan, compara sus diagnósticos y descarga los datos filtrados.' },
+  ficha: { name: 'Fichas de lagos', label: 'Fichas', icon: ScanSearch, description: 'Compara imágenes, revisa la evolución del agua y consulta la evidencia de cada diagnóstico.' },
+} as const;
 const views = {
-  panorama: { name: 'Panorama', label: 'Panorama', icon: LayoutDashboard },
-  mapa: { name: 'Mapa 3D de Bolivia', label: 'Mapa 3D', icon: MapIcon },
-  monitoreo: { name: 'Monitoreo', label: 'Monitoreo', icon: Table2 },
-  ficha: { name: 'Ficha del cuerpo de agua', label: 'Fichas', icon: ScanSearch },
-  vigilancia: { name: 'Vigilancia semanal', label: 'Incendios', icon: Flame },
+  panorama: { name: 'Análisis de los lagos', description: 'Superficie de agua, diagnósticos y señales de presión sobre las cuencas.' },
+  ...lakeViews,
+  vigilancia: { name: 'Incendios', description: 'Consulta los focos térmicos semanales detectados cerca de los lagos y en sus cuencas.' },
+  vegetacion: { name: 'Vegetación', description: 'Explora la pérdida de bosque, las áreas quemadas y los cambios de uso del suelo alrededor de los lagos.' },
 } as const;
 type View = keyof typeof views;
 
@@ -40,7 +49,9 @@ export function Dashboard() {
   const router = useRouter();
   const params = useSearchParams();
   const candidate = params.get('vista');
-  const view = candidate && Object.hasOwn(views, candidate) ? candidate as View : 'panorama';
+  const view = candidate === 'lagos' ? 'mapa' : candidate === 'incendios' ? 'vigilancia'
+    : candidate && Object.hasOwn(views, candidate) ? candidate as View : 'panorama';
+  const lakeSection = view === 'mapa' || view === 'monitoreo' || view === 'ficha';
   const requestedMethod: Method = params.get('metodo') === 'conservador' ? 'conservative' : 'balance';
   const selected = params.get('laguna');
   const [snapshots, setSnapshots] = useState<Partial<Record<Method, Snapshot>>>({});
@@ -88,6 +99,14 @@ export function Dashboard() {
   const visible = snapshot?.results.filter((body) => body.body_id === selected || showControls ||
     !controls.has(body.body_id) || humanEvidenceStates.includes(body.state)) ?? [];
   const current = visible.find((body) => body.body_id === selected);
+  const vegetationId = snapshot?.results.find((body) => body.body_id === selected)?.body_id
+    ?? snapshot?.results.find((body) => body.body_id === 'poopo')?.body_id ?? snapshot?.results[0]?.body_id;
+  const links = {
+    inicio: locationFor('panorama', method),
+    lagos: locationFor('mapa', method, selected),
+    incendios: locationFor('vigilancia', method),
+    vegetacion: locationFor('vegetacion', method, selected),
+  };
 
   function openDetails(id: string) {
     router.push(locationFor('ficha', method, id));
@@ -99,31 +118,20 @@ export function Dashboard() {
 
   return <div className="shell">
     <a className="skip-link" href="#contenido">Ir al contenido</a>
-    <header className="site-header">
-      <div className="navbar">
-        <Link className="brand" href={locationFor('panorama', method)}>
-          <span className="brand-mark"><Droplets size={21} aria-hidden="true" /></span>
-          <span>Detector de huella humana</span>
-        </Link>
-        <nav aria-label="Navegación principal">
-          {(Object.keys(views) as View[]).map((key) => {
-            const { label, icon: Icon } = views[key];
-            const body = key === 'mapa' || key === 'ficha' ? selected : null;
-            return <Link key={key} href={locationFor(key, method, body)} aria-current={key === view ? 'page' : undefined}>
-              <Icon size={17} aria-hidden="true" /><span>{label}</span>
-            </Link>;
-          })}
-        </nav>
-      </div>
-    </header>
-    <main id="contenido" className="main-content">
+    <MissionNav links={links} active={lakeSection ? 'lagos' : view === 'vigilancia' ? 'incendios' : view === 'vegetacion' ? 'vegetacion' : 'inicio'} />
+    <main id="contenido" className={view === 'panorama' ? 'main-content mission-home' : 'main-content mission-subpage'}>
+      {view === 'panorama' && <MissionHome lakes={links.lagos} fires={links.incendios} vegetation={links.vegetacion} />}
+      {lakeSection && <nav className="lake-nav" aria-label="Explorar lagos">
+        {(Object.entries(lakeViews) as [keyof typeof lakeViews, typeof lakeViews[keyof typeof lakeViews]][]).map(([key, { label, icon: Icon }]) =>
+          <Link key={key} href={locationFor(key, method, key === 'monitoreo' ? null : selected)} aria-current={key === view ? 'page' : undefined}>
+            <Icon size={17} aria-hidden="true" />{label}
+          </Link>)}
+      </nav>}
       <header className="page-header"><div>
-        <p className="eyebrow">Agua de Bolivia</p>
-        <h1>{views[view].name}</h1>
-        {view === 'panorama' && <p>Superficie de agua, veredictos y señales de presión sobre las cuencas.</p>}
-        {view === 'mapa' && <p>Explora el relieve y selecciona una columna para enfocar la laguna y consultar su ficha.</p>}
+        {view === 'panorama' ? <h2>{views[view].name}</h2> : <h1>{views[view].name}</h1>}
+        <p>{views[view].description}</p>
       </div>
-        {view !== 'vigilancia' && <div className="page-actions">
+        {(view === 'panorama' || lakeSection) && <div className="page-actions">
           {(view === 'panorama' || view === 'mapa' || view === 'ficha') && snapshot && <label className="control-check">
             <input type="checkbox" checked={showControls} onChange={(event) => {
               setShowControls(event.target.checked);
@@ -149,7 +157,7 @@ export function Dashboard() {
       </div>}
       {!snapshot && !currentError && view !== 'vigilancia' && <p className="loading" role="status">Cargando datos del detector…</p>}
       {snapshot?.sample && <p className="notice">Datos ficticios de prueba.</p>}
-      {snapshot && method === 'conservative' && view !== 'vigilancia' && <p className="notice model-note">
+      {snapshot && method === 'conservative' && (view === 'panorama' || lakeSection) && <p className="notice model-note">
         <span>Modelo conservador aplicado a los casos con análisis completo. <Link href={locationFor('mapa', 'balance')}>Ver el barrido nacional en el mapa.</Link></span>
       </p>}
       {snapshot && view === 'panorama' && <>
@@ -166,10 +174,13 @@ export function Dashboard() {
       {snapshot && view === 'ficha' && (visible.length ? <Details key={method} method={method} bodies={visible} id={current?.body_id ?? visible[0].body_id}
         select={selectBody} back={() => router.push(locationFor('mapa', method, current?.body_id ?? visible[0].body_id))} />
         : <p className="notice">No hay cuerpos de agua disponibles.</p>)}
+      {snapshot && view === 'vegetacion' && (vegetationId
+        ? <Vegetation bodies={snapshot.results} id={vegetationId} method={method} select={selectBody} details={locationFor('ficha', method, vegetationId)} />
+        : <p className="notice">No hay cuerpos de agua con datos de vegetación.</p>)}
       {view === 'vigilancia' && (weeklyError ? <div className="notice danger" role="alert">
         {weeklyError} <button type="button" onClick={() => { setWeeklyError(''); setWeeklyAttempt((value) => value + 1); }}>Reintentar</button>
-      </div> : <Watch weekly={weekly} />)}
-      {snapshot && <footer>Los diagnósticos se basan en coincidencia y consistencia estadística. Fuentes: Landsat, NASA POWER y FIRMS, NOAA, JRC, MapBiomas Bolivia, Hansen, HydroBASINS y OpenStreetMap.</footer>}
+      </div> : <Watch weekly={weekly} map={links.lagos} />)}
+      <footer>Los diagnósticos se basan en coincidencia y consistencia estadística. Fuentes: Landsat, NASA POWER y FIRMS, NOAA, JRC, MapBiomas Bolivia, Hansen, HydroBASINS y OpenStreetMap.</footer>
     </main>
   </div>;
 }
@@ -234,16 +245,38 @@ function Monitor({ snapshot, weekly, method, openDetails }: { snapshot: Snapshot
   </>;
 }
 
-function Watch({ weekly }: { weekly?: Weekly }) {
+function Watch({ weekly, map }: { weekly?: Weekly; map: string }) {
+  const [area, setArea] = useState('cuenca');
   if (!weekly) return <p className="loading" role="status">Cargando vigilancia semanal…</p>;
   const report = weekly.report;
   const alerts = report?.rows.filter((entry) => entry.alerta).length ?? 0;
+  const counts = report?.rows.flatMap((row) => row.areas[area] ? [{ name: row.name, ...row.areas[area] }] : []) ?? [];
+  const scale = Math.max(1, ...counts.map(({ focos, normal }) => Math.max(focos, normal)));
   return <>
     {report ? <>
       <div className={`notice ${alerts ? 'danger' : 'success'}`}><Flame size={20} aria-hidden="true" /><div>
         <strong>{alerts ? `${alerts} cuerpos de agua con alerta de incendios` : 'Sin alertas en el último reporte'}</strong>
-        <p>Semana al {report.week_end} · Revisado {report.checked_at.replace('T', ' ').slice(0, 16)} · {report.notified}</p>
+        <p>Reporte guardado de la semana al {report.week_end} · Revisado {report.checked_at.replace('T', ' ').slice(0, 16)} · {report.notified}</p>
       </div></div>
+      <section className="panel mission-data-panel">
+        <div className="mission-chart-heading">
+          <div><h2>Focos térmicos por lago</h2><p>La referencia es el promedio de la misma semana en los cinco años anteriores.</p></div>
+          <label><span id="fire-area-label">Área</span><select aria-labelledby="fire-area-label"
+            value={area} onChange={(event) => setArea(event.target.value)}>
+            <option value="cuenca">Toda la cuenca</option><option value="cerca">Cerca de la laguna</option>
+          </select></label>
+        </div>
+        <div className="mission-fire-key"><span><i /> Semana del reporte</span><span><i /> Promedio histórico</span></div>
+        {counts.length ? <ul className="mission-fire-chart">
+          {counts.map(({ name, focos, normal }) => <li key={name}><strong>{name}</strong>
+            <div aria-label={`${focos} focos esta semana y ${number(normal, 1)} de promedio`}>
+              <div><i style={{ width: `${focos / scale * 100}%` }} /><b>{number(focos)}</b></div>
+              <div><i style={{ width: `${normal / scale * 100}%` }} /><b>{number(normal, 1)}</b></div>
+            </div>
+          </li>)}
+        </ul> : <p className="notice">El reporte no incluye focos para esta área.</p>}
+        <Link className="button-link" href={map}>Abrir mapa y sus capas <ArrowUpRight size={16} aria-hidden="true" /></Link>
+      </section>
       <DataTable rows={report.rows.flatMap((body) => Object.entries(body.areas).map(([area, item]) => ({
         'Cuerpo de agua': body.name, Estado: states[body.state].label, Área: area === 'cerca' ? 'Cerca de la laguna' : 'Toda la cuenca',
         'Focos esta semana': item.focos, 'Normal para esta semana': item.normal, Alerta: item.alerta ? 'Sí' : 'No',

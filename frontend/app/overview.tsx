@@ -1,9 +1,16 @@
 'use client';
 
-import { ArrowUpRight, Droplets, Flame, Footprints, Gauge, ScanSearch, TrendingDown } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { ArrowUpRight, Box, Circle, Droplets, Flame, Footprints, Gauge, ScanSearch, TrendingDown } from 'lucide-react';
 import { firstSuspect, humanEvidenceStates, number, signed, states, visibleStates,
   type Method, type Snapshot, type State, type WaterBody, type Weekly } from './data';
 import { Status } from './ui';
+import type { DonutSlice } from './glass-donut';
+
+const GlassDonut = dynamic(() => import('./glass-donut'), {
+  ssr: false, loading: () => <p className="glass-canvas loading" role="status">Preparando el gráfico 3D…</p>,
+});
 
 const color = (state: State) => `rgb(${states[state].rgb.join(',')})`;
 const lossColors: Record<string, string> = {
@@ -13,27 +20,75 @@ const lossColors: Record<string, string> = {
 const lossLabels: Record<string, string> = { 'Lluvia menos evaporacion': 'Lluvia menos evaporación', 'El Nino': 'El Niño' };
 
 function counts(bodies: WaterBody[], order: State[]) {
-  return order.map((state) => ({ state, count: bodies.filter((body) => body.state === state).length })).filter((row) => row.count);
+  return order.map((state) => ({
+    label: states[state].label, color: color(state), value: bodies.filter((body) => body.state === state).length,
+  })).filter((row) => row.value);
 }
 
-function distribution(rows: ReturnType<typeof counts>, total: number) {
+function distribution(rows: DonutSlice[], total: number) {
   let start = 0;
-  return rows.map(({ state, count }) => {
-    const end = start + count / total * 100;
-    const segment = `${color(state)} ${start}% ${end}%`;
+  return rows.map(({ color, value }) => {
+    const end = start + value / total * 100;
+    const segment = `${color} ${start}% ${end}%`;
     start = end;
     return segment;
   }).join(', ');
 }
 
-function VerdictDonut({ label, bodies, order }: { label: string; bodies: WaterBody[]; order: State[] }) {
-  const rows = counts(bodies, order);
-  const segments = distribution(rows, bodies.length);
-  return <figure className="verdict-set">
-    <div className="verdict-donut" style={{ background: segments ? `conic-gradient(${segments})` : undefined }} aria-hidden="true"><b>{bodies.length}</b></div>
-    <figcaption><strong>{label}</strong><ul>{rows.map(({ state, count }) => <li key={state}><i style={{ background: color(state) }} />
-      {states[state].label} <b>{count}</b></li>)}</ul></figcaption>
-  </figure>;
+function VerdictDistribution({ bodies, national, method }: { bodies: WaterBody[]; national: WaterBody[]; method: Method }) {
+  const [mode, setMode] = useState('2D');
+  const [scope, setScope] = useState('complete');
+  const [active, setActive] = useState<number | null>(null);
+  const [noWebGL, setNoWebGL] = useState(false);
+  const onUnavailable = useCallback(() => {
+    setNoWebGL(true);
+    setMode('2D');
+  }, []);
+  const group = scope === 'national' && national.length ? national : bodies;
+  const slices = useMemo(() => counts(group, visibleStates(method, group)), [group, method]);
+  const highlighted = active == null ? undefined : slices[active];
+  const segments = distribution(slices, group.length);
+
+  return <section className="panel mission-verdict">
+    <div className="mission-chart-heading">
+      <div><h2>Diagnósticos de los lagos</h2><p>Cuántos cuerpos de agua hay en cada categoría de análisis.</p></div>
+      <div className="mission-chart-controls">
+        {!!national.length && <label><span id="diagnostic-scope-label">Alcance</span><select aria-labelledby="diagnostic-scope-label"
+          value={scope} onChange={(event) => { setActive(null); setScope(event.target.value); }}>
+          <option value="complete">Análisis completo</option><option value="national">Barrido nacional</option>
+        </select></label>}
+        <div className="camera-switch" role="group" aria-label="Vista del gráfico">
+          <button type="button" aria-pressed={mode === '2D'} onClick={() => { setActive(null); setMode('2D'); }}><Circle size={16} aria-hidden="true" /> 2D</button>
+          <button type="button" aria-pressed={mode === '3D'} disabled={noWebGL || !slices.length} onClick={() => { setActive(null); setMode('3D'); }}>
+            <Box size={17} aria-hidden="true" /> 3D
+          </button>
+        </div>
+      </div>
+    </div>
+    {!slices.length ? <p className="loading">Sin casos disponibles para este alcance.</p> : <div className="mission-verdict-body">
+      <div className="mission-donut-area">
+        {mode === '3D' ? <GlassDonut slices={slices} active={active} onActive={setActive} onUnavailable={onUnavailable} />
+          : <div className="mission-donut" aria-hidden="true" style={{ background: `conic-gradient(${segments})` }}><div>
+            <b>{number(highlighted?.value ?? group.length)}</b><span>{highlighted ? 'en esta categoría' : 'cuerpos de agua'}</span>
+          </div></div>}
+        {mode === '3D' && <p className="glass-caption">{highlighted
+          ? `${highlighted.label} · ${highlighted.value} (${number(highlighted.value / group.length * 100, 1)} %)`
+          : 'Arrastra para girar'}</p>}
+      </div>
+      <div>
+        <p className="mission-eyebrow">{number(group.length)} cuerpos de agua</p>
+        <ul className="mission-donut-legend" aria-label="Diagnósticos y cantidades">
+          {slices.map((slice, index) => <li key={slice.label}><button type="button" className={active === index ? 'selected' : undefined}
+            onPointerEnter={() => setActive(index)} onPointerLeave={() => setActive(null)} onFocus={() => setActive(index)}
+            onBlur={() => setActive(null)} onClick={() => setActive(index)}>
+            <i style={{ background: slice.color }} aria-hidden="true" /><span>{slice.label}</span>
+            <b>{number(slice.value)} <small>· {number(slice.value / group.length * 100, 1)} %</small></b>
+          </button></li>)}
+        </ul>
+        {noWebGL && <p className="muted" role="status">Este navegador muestra el gráfico en 2D.</p>}
+      </div>
+    </div>}
+  </section>;
 }
 
 function Bars({ items }: { items: { label: string; value: number; color: string }[] }) {
@@ -99,12 +154,8 @@ export default function Overview({ bodies, snapshot, weekly, method, openDetails
     <div className="overview-kpis">{kpis.map(({ label, value, icon: Icon }) => <article key={label} className="panel overview-kpi">
       <Icon size={19} aria-hidden="true" /><strong>{value}</strong><span>{label}</span>
     </article>)}</div>
-    <div className="overview-grid">
-      <section className="panel overview-panel">
-        <h2>Veredictos</h2>
-        <div className="verdicts"><VerdictDonut label="Análisis completo" bodies={bodies} order={order} />
-          {!!snapshot.national.length && <VerdictDonut label="Barrido nacional" bodies={snapshot.national} order={order} />}</div>
-      </section>
+    <VerdictDistribution key={method} bodies={bodies} national={snapshot.national} method={method} />
+    <div className="overview-grid overview-loss">
       <section className="panel overview-panel">
         <h2>{method === 'balance' ? 'De dónde viene el agua perdida' : 'Cambio modelado y diferencia no atribuida'}</h2>
         {losses.size ? <Bars items={[...losses].sort((a, b) => b[1] - a[1]).map(([label, value]) => ({
@@ -129,11 +180,13 @@ export default function Overview({ bodies, snapshot, weekly, method, openDetails
     <div className="overview-grid">
       <section className="panel overview-panel">
         <h2>Por región</h2>
-        <ul className="overview-bars">{regions.map(({ name, bodies }) => <li key={name}>
-          <div><span>{name}</span><strong>{bodies.length}</strong></div>
-          <div className="bar-track" style={{ background: distribution(counts(bodies, order), bodies.length)
-            ? `linear-gradient(to right, ${distribution(counts(bodies, order), bodies.length)})` : undefined }} />
-        </li>)}</ul>
+        <ul className="overview-bars">{regions.map(({ name, bodies }) => {
+          const colors = distribution(counts(bodies, order), bodies.length);
+          return <li key={name}>
+            <div><span>{name}</span><strong>{bodies.length}</strong></div>
+            <div className="bar-track" style={{ background: colors ? `linear-gradient(to right, ${colors})` : undefined }} />
+          </li>;
+        })}</ul>
         <p className="muted">{method === 'balance' ? 'Incluye el barrido nacional.' : 'Incluye los cuerpos de agua con análisis completo.'}</p>
       </section>
       <section className="panel overview-panel">
