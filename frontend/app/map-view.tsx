@@ -5,9 +5,9 @@ import DeckGL from '@deck.gl/react';
 import { FlyToInterpolator, type Layer, type Position } from '@deck.gl/core';
 import { TerrainLayer } from '@deck.gl/geo-layers';
 import { ColumnLayer, IconLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers';
-import { ArrowUpRight, CircleHelp, Droplet, Layers, LocateFixed, Mountain } from 'lucide-react';
+import { ArrowDown, ArrowUpRight, Bell, CircleHelp, Droplet, Layers, LocateFixed, Mountain } from 'lucide-react';
 import { api, diagnosisMeaning, firstSuspect, signed, states, visibleStates, waterChange,
-  type BodyDetail, type Method, type Place, type Snapshot, type State, type WaterBody } from './data';
+  type BodyDetail, type Method, type Place, type Snapshot, type State, type WatchSignal, type WaterBody } from './data';
 import { LakeSearch } from './lake-search';
 import { lakeMarker } from './lake-marker';
 import { Status } from './ui';
@@ -29,9 +29,10 @@ const heightKey = (point: { lat: number; lon: number }) => `${point.lat},${point
 const estimatedElevation = ({ lat, lon }: { lat: number; lon: number }) => lon < -65.6 && lat < -14.5 ? 4100 : 650;
 const rgb = (state: State): [number, number, number] => [...states[state].rgb];
 
-export default function MapView({ snapshot, method, bodies, searchBodies, selected, select, openDetails }: {
+export default function MapView({ snapshot, method, bodies, searchBodies, selected, select, openDetails, alerts }: {
   snapshot: Snapshot; method: Method; bodies: WaterBody[]; searchBodies: WaterBody[]; selected?: WaterBody;
   select: (id: string | null) => void; openDetails: (id: string) => void;
+  alerts?: WatchSignal[];
 }) {
   const [mode, setMode] = useState<Mode>('esri');
   const [year, setYear] = useState(2024);
@@ -47,6 +48,8 @@ export default function MapView({ snapshot, method, bodies, searchBodies, select
   const icons = useMemo(() => new Map((Object.keys(states) as State[]).map((state) =>
     [state, { default: lakeMarker(rgb(state), false), active: lakeMarker(rgb(state), true) }])), []);
   const selectedId = selected?.body_id;
+  const waterAlerts = new Map(alerts?.filter((signal) => signal.type === 'agua').map((signal) => [signal.id, signal]));
+  const selectedAlert = selectedId ? waterAlerts.get(selectedId) : undefined;
   const complete = selectedId ? bodies.some((body) => body.body_id === selectedId) : false;
   const textureKey = `${mode}:${year}:${fires}`;
   const activeTexture = textureResult?.key === textureKey ? textureResult : undefined;
@@ -101,6 +104,7 @@ export default function MapView({ snapshot, method, bodies, searchBodies, select
       description: 'Análisis completo', radius: selected ? 450 : 12000, loss,
     };
   });
+  const flagged = columns.filter(({ body }) => waterAlerts.has(body.body_id));
   const nationalPoints: LakePoint[] = (national ? snapshot.national : snapshot.national.filter((body) => body.body_id === selectedId)).map((body) => ({
     body, name: body.name, position: [body.lon, body.lat, z(body)], color: rgb(body.state),
     description: 'Barrido nacional · diagnóstico preliminar',
@@ -117,6 +121,11 @@ export default function MapView({ snapshot, method, bodies, searchBodies, select
   const layers: Layer[] = [
     new TerrainLayer({ id: 'relieve', elevationData: terrain, texture: activeTexture?.url ?? esri,
       elevationDecoder: { rScaler: 256, gScaler: 1, bScaler: 1 / 256, offset: -32768 }, maxZoom: 13 }),
+    new ColumnLayer<Column>({ id: 'alert-platforms', data: flagged, getPosition: (p) => [
+      p.body.lon, p.body.lat, (p.position[2] ?? 0) + 110,
+    ], radius: selected ? 1050 : 22500, diskResolution: 32, extruded: !camera.flat,
+    getElevation: selected ? 100 : 1650, getFillColor: (p) => waterAlerts.get(p.body.body_id)?.level === 'prioridad'
+      ? [255, 136, 62, 200] : [187, 225, 108, 170], pickable: false }),
     new ScatterplotLayer<LakePoint>({ id: 'barrido', data: nationalPoints, getPosition: (p) => p.position,
       getRadius: (p) => p.radius, getFillColor: (p) => p.color, radiusMinPixels: 5, radiusMaxPixels: 18,
       stroked: true, getLineColor: (p) => p.body.body_id === selectedId ? [228, 255, 116] : [255, 255, 255],
@@ -135,6 +144,10 @@ export default function MapView({ snapshot, method, bodies, searchBodies, select
       getIcon: (p) => icons.get(p.body.state)![p.body.body_id === selectedId ? 'active' : 'default'],
       parameters: { depthCompare: 'always', depthWriteEnabled: false },
       onClick: ({ object }) => { if (object) select(object.body.body_id); } }),
+    new ScatterplotLayer<Column>({ id: 'alert-orbits', data: flagged, getPosition: (p) => p.iconPosition,
+      radiusUnits: 'pixels', getRadius: 11, getPixelOffset: [0, -1], filled: false, stroked: true, lineWidthMinPixels: 3,
+      getLineColor: (p) => waterAlerts.get(p.body.body_id)?.level === 'prioridad' ? [255, 169, 102] : [224, 255, 121],
+      parameters: { depthCompare: 'always', depthWriteEnabled: false }, pickable: false }),
     new TextLayer<Column>({ id: 'etiquetas', data: selected ? columns.filter((p) => p.body.body_id === selectedId) : columns,
       getPosition: (p) => p.iconPosition,
       getText: (p) => p.name.split(' (')[0], getColor: [240, 248, 249], getSize: 13, fontWeight: 700,
@@ -155,7 +168,10 @@ export default function MapView({ snapshot, method, bodies, searchBodies, select
   return <>
     <div className="panel map-discover">
       <LakeSearch id="buscar-lago" bodies={searchBodies} onSelect={select} />
-      <p><CircleHelp size={18} aria-hidden="true" /> Pasa el mouse por una gota o un punto para leer su diagnóstico. En el celular, toca el marcador.</p>
+      <div className="map-discover-help">
+        <p><CircleHelp size={18} aria-hidden="true" /> Pasa el mouse por una gota o un punto para leer su diagnóstico. En el celular, toca el marcador.</p>
+        {!!waterAlerts.size && <a href="#alertas"><Bell size={17} aria-hidden="true" /> {waterAlerts.size} alertas de agua <ArrowDown size={15} aria-hidden="true" /></a>}
+      </div>
     </div>
     <div className="map-workspace">
       <section id="mapa-lagos" aria-label="Mapa de cuerpos de agua" className="map-panel panel" tabIndex={-1}>
@@ -178,10 +194,12 @@ export default function MapView({ snapshot, method, bodies, searchBodies, select
             getTooltip={({ object }: { object?: Point | LakePoint }) => {
               if (!object) return null;
               const body = 'body' in object ? object.body : undefined;
+              const alert = body ? waterAlerts.get(body.body_id) : undefined;
               return { className: 'mission-map-tooltip', text: body ? [
                 object.name, states[body.state].label + ' · ' + waterChange(body.trend.change_pct),
+                alert ? `${alert.level === 'prioridad' ? 'Prioridad alta' : 'En seguimiento'} · ${alert.from}–${alert.to}` : '',
                 diagnosisMeaning[body.state], object.description,
-              ].join('\n') : `${object.name}\n${object.description}` };
+              ].filter(Boolean).join('\n') : `${object.name}\n${object.description}` };
             }} />
             : <p className="map-notice" role="status">El navegador no pudo iniciar WebGL. Puedes elegir un cuerpo de agua en la lista.</p>}
           <div className="attribution">{mode === 'esri' || !activeTexture?.url ? 'Esri World Imagery' : 'Google Earth Engine'} · AWS Terrain Tiles</div>
@@ -191,6 +209,7 @@ export default function MapView({ snapshot, method, bodies, searchBodies, select
           <span><i className="legend-column" aria-hidden="true" /> Más altura indica mayor pérdida de agua</span>
           {national && <span><i className="legend-national" aria-hidden="true" /> Laguna del barrido nacional</span>}
           {artificial && <span><i className="legend-artificial" aria-hidden="true" /> Agua artificial</span>}
+          {!!flagged.length && <span><i className="legend-alert" aria-hidden="true" /> Aro naranja: prioridad alta · verde: seguimiento</span>}
         </div>
       </section>
 
@@ -220,6 +239,8 @@ export default function MapView({ snapshot, method, bodies, searchBodies, select
           {selected && <div className="map-selection">
             <div><Status state={selected.state} /><strong>{waterChange(selected.trend.change_pct)}</strong></div>
             <p>{diagnosisMeaning[selected.state]}</p>
+            {selectedAlert && <p className="map-alert-summary"><Bell size={17} aria-hidden="true" /> {selectedAlert.level === 'prioridad' ? 'Prioridad alta' : 'En seguimiento'}
+              {' · '}{selectedAlert.from}–{selectedAlert.to}<a href="#alertas">Ver criterio</a></p>}
             {suspect && <p className="muted">{suspect.label} · {suspect.evidence}</p>}
             {!!selected.why?.length && <ul className="muted">{selected.why.slice(0, 3).map((reason) => <li key={reason}>{reason}</li>)}</ul>}
             {complete ? <button type="button" className="primary" onClick={() => openDetails(selected.body_id)}>Abrir ficha <ArrowUpRight size={16} aria-hidden="true" /></button>

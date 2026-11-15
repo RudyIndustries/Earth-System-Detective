@@ -1,10 +1,11 @@
 import { BadRequestException, Body, Controller, Get, Param, Post, Query, StreamableFile } from '@nestjs/common';
 import { ObservatoryService } from './observatory.service';
 import { MapService } from './map.service';
+import { NasaService } from './nasa.service';
 
 @Controller()
 export class ObservatoryController {
-  constructor(private readonly observatory: ObservatoryService, private readonly map: MapService) {}
+  constructor(private readonly observatory: ObservatoryService, private readonly map: MapService, private readonly nasa: NasaService) {}
 
   @Get('health')
   health() { return { status: 'ok' }; }
@@ -13,6 +14,27 @@ export class ObservatoryController {
   dashboard(@Query('method') method?: string) {
     return { ...this.observatory.dashboard(method), liveMap: this.map.configured };
   }
+
+  @Get('alerts')
+  alerts(@Query('method') method?: string) { return this.observatory.watchlist(method); }
+
+  @Get('bodies/:id/nasa')
+  async satellite(@Param('id') id: string) {
+    const point = this.observatory.location(id);
+    const [power, catalog] = await Promise.all([this.nasa.power(point), this.nasa.granules(point)]);
+    return { power, catalog, earthEngine: this.map.configured };
+  }
+
+  @Get('bodies/:id/climate')
+  climate(@Param('id') id: string, @Query('month') month?: string) {
+    if (!month || !/^20\d{2}-(0[1-9]|1[0-2])$/.test(month) || month >= new Date().toISOString().slice(0, 7)) {
+      throw new BadRequestException('Elige un mes completo desde el año 2000.');
+    }
+    return this.map.compareClimate(this.observatory.location(id), month);
+  }
+
+  @Get('fires/recent')
+  recentFires() { return this.nasa.fires(this.observatory.dashboard().results); }
 
   @Get('bodies/:id')
   detail(@Param('id') id: string, @Query('method') method?: string) { return this.observatory.detail(id, method); }

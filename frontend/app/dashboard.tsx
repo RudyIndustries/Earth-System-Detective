@@ -6,11 +6,13 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowDown, ArrowUpRight, CalendarDays, Download, Flame, Layers, Map as MapIcon, ScanSearch, Search, Table2 } from 'lucide-react';
 import { api, downloadCsv, firstSuspect, humanEvidenceStates, methodNames, modelUrl, number, searchKey, signed, states,
-  visibleStates, type Method, type Snapshot, type State, type WaterBody, type Weekly } from './data';
+  visibleStates, type Method, type Snapshot, type State, type WatchSignal, type WaterBody, type Weekly } from './data';
 import { Status, DataTable } from './ui';
 import { MissionNav } from './mission-nav';
 import { MissionHome } from './mission-home';
 import { Guide } from './guide';
+import { Alerts, useWatchlist } from './alerts';
+import { SourceInventory } from './source-inventory';
 
 const MapView = dynamic(() => import('./map-view'), {
   ssr: false,
@@ -31,6 +33,7 @@ const FireHistory = dynamic(() => import('./fire-history'), {
     <h2>Mapa histórico de focos</h2><p className="loading" role="status">Cargando el mapa…</p>
   </section>,
 });
+const RecentFires = dynamic(() => import('./environment').then((module) => module.RecentFires));
 const lakeViews = {
   mapa: { name: 'Lagos de Bolivia', label: 'Mapa 3D', icon: MapIcon, description: 'Encuentra lagos por nombre, ubícalos en el mapa y mira cuánto cambió su superficie de agua. Las gotas flotantes llevan a los casos con ficha completa.' },
   monitoreo: { name: 'Monitoreo de lagos', label: 'Monitoreo', icon: Table2, description: 'Compara la superficie, el cambio de agua y los diagnósticos de varios lagos en una tabla. Puedes filtrar la lista y descargar los resultados.' },
@@ -69,6 +72,7 @@ export function Dashboard() {
   const [attempt, setAttempt] = useState(0);
   const [weeklyAttempt, setWeeklyAttempt] = useState(0);
   const method = snapshots.balance?.conservativeAvailable === false ? 'balance' : requestedMethod;
+  const watchlist = useWatchlist(method);
   const snapshot = snapshots[method];
   const currentError = error?.method === method ? error.message : undefined;
 
@@ -125,11 +129,18 @@ export function Dashboard() {
     router.replace(locationFor(view, method, id), { scroll: false });
   }
 
+  function openAlert(signal: WatchSignal) {
+    if (signal.type === 'incendios') return links.incendios + '#reporte-incendios';
+    if (signal.type === 'vegetacion') return locationFor('vegetacion', method, signal.id) + '#vegetation-series';
+    return locationFor('ficha', method, signal.id) + '#resumen-ficha';
+  }
+
   return <div className="shell">
     <a className="skip-link" href="#contenido">Ir al contenido</a>
     <MissionNav links={links} active={lakeSection ? 'lagos' : view === 'vigilancia' ? 'incendios' : view === 'vegetacion' ? 'vegetacion' : 'inicio'} />
     <main id="contenido" className={view === 'panorama' ? 'main-content mission-home' : 'main-content mission-subpage'}>
-      {view === 'panorama' && <MissionHome lakes={links.lagos} fires={links.incendios} vegetation={links.vegetacion} />}
+      {view === 'panorama' && <MissionHome lakes={links.lagos} fires={links.incendios} vegetation={links.vegetacion}
+        alerts={<Alerts watchlist={watchlist} link={openAlert} />} />}
       {lakeSection && <nav className="lake-nav" aria-label="Explorar lagos">
         {(Object.entries(lakeViews) as [keyof typeof lakeViews, typeof lakeViews[keyof typeof lakeViews]][]).map(([key, { label, icon: Icon }]) =>
           <Link key={key} href={locationFor(key, method, key === 'monitoreo' ? null : selected)} aria-current={key === view ? 'page' : undefined}>
@@ -178,21 +189,27 @@ export function Dashboard() {
         </div>
         <Overview snapshot={snapshot} method={method} bodies={visible} weekly={weekly} openDetails={openDetails} />
       </>}
-      {snapshot && view === 'mapa' && <MapView key={method} method={method} snapshot={snapshot} bodies={visible} searchBodies={searchLakes}
-        selected={mappedLake} select={selectBody} openDetails={openDetails} />}
-      {snapshot && view === 'monitoreo' && <Monitor key={method} method={method} snapshot={snapshot} weekly={weekly} openDetails={openDetails} />}
+      {snapshot && view === 'mapa' && <><MapView key={method} method={method} snapshot={snapshot} bodies={visible} searchBodies={searchLakes}
+        selected={mappedLake} select={selectBody} openDetails={openDetails} alerts={watchlist.data?.signals} />
+        <Alerts key={view} watchlist={watchlist} link={openAlert} category="agua" /></>}
+      {snapshot && view === 'monitoreo' && <><Alerts key={view} watchlist={watchlist} link={openAlert} category="agua" />
+        <Monitor key={method} method={method} snapshot={snapshot} weekly={weekly} openDetails={openDetails} /></>}
       {snapshot && view === 'ficha' && (visible.length ? <Details key={method} method={method} bodies={visible} id={current?.body_id ?? visible[0].body_id}
-        select={selectBody} back={() => router.push(locationFor('mapa', method, current?.body_id ?? visible[0].body_id))} />
+        select={selectBody} back={() => router.push(locationFor('mapa', method, current?.body_id ?? visible[0].body_id))}
+        alerts={<Alerts key={view} watchlist={watchlist} link={openAlert} category="agua" bodyId={current?.body_id ?? visible[0].body_id} />} />
         : <p className="notice">No hay cuerpos de agua disponibles.</p>)}
       {snapshot && view === 'vegetacion' && (vegetationId
-        ? <Vegetation bodies={snapshot.results} id={vegetationId} method={method} select={selectBody} details={locationFor('ficha', method, vegetationId)} />
+        ? <><Alerts key={view} watchlist={watchlist} link={openAlert} category="vegetacion" />
+          <Vegetation bodies={snapshot.results} id={vegetationId} method={method} select={selectBody} details={locationFor('ficha', method, vegetationId)} /></>
         : <p className="notice">No hay cuerpos de agua con datos de vegetación.</p>)}
       {view === 'vigilancia' && <>
         <nav className="section-jump" aria-label="Qué encontrarás en Incendios">
           <a className="button-link" href="#mapa-incendios"><MapIcon size={17} aria-hidden="true" /> Mapa histórico <ArrowDown size={15} aria-hidden="true" /></a>
           <a className="button-link" href="#reporte-incendios"><CalendarDays size={17} aria-hidden="true" /> Reporte por lagos <ArrowDown size={15} aria-hidden="true" /></a>
         </nav>
+        <Alerts key={view} watchlist={watchlist} link={openAlert} category="incendios" />
         <FireHistory />
+        <RecentFires />
         <section id="reporte-incendios" className="fire-weekly" aria-labelledby="fire-weekly-title" tabIndex={-1}>
           <div className="mission-section-heading">
             <h2 id="fire-weekly-title">Reporte semanal por lago</h2>
@@ -203,6 +220,7 @@ export function Dashboard() {
           </div> : <Watch weekly={weekly} map={links.lagos} />}
         </section>
       </>}
+      {view === 'panorama' && <SourceInventory />}
       <footer>Los diagnósticos se basan en coincidencia y consistencia estadística. Fuentes: Landsat, NASA POWER y FIRMS, NOAA, JRC, MapBiomas Bolivia, Hansen, HydroBASINS y OpenStreetMap.</footer>
     </main>
     <Guide key={view} view={view} />

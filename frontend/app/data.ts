@@ -120,12 +120,49 @@ export interface BodyDetail {
     legend: Record<string, { label: string; color: string }> } | null;
   water: { area: Area; year: number; suspect: string; value: number }[];
   vegetation?: { area: Area; year: number; suspect: string; value: number }[];
+  climate?: ClimateYear[];
+  catchment?: { areaKm2: number | null; subbasins: number | null; upstream: string[] } | null;
   verification: {
     r_agua_landsat_mapbiomas: number | null; r_lluvia_power_chirps: number | null;
     lluvia_media_power_mm: number | null; lluvia_media_chirps_mm: number | null;
     agua_landsat: Record<string, number | null>; agua_mapbiomas: Record<string, number | null>;
   } | null;
   river: { agua_cauce_ha: Record<string, number>; deficit_pct: Record<string, number> } | null;
+}
+
+export interface ClimateYear {
+  year: number;
+  waterHa: number | null;
+  jrcHa: number | null;
+  missingPct: number | null;
+  powerMm: number | null;
+  chirpsMm: number | null;
+  rainMm: number | null;
+  tempC: number | null;
+  petMm: number | null;
+  storageCm: number | null;
+  oni: number | null;
+}
+
+export interface WatchSignal {
+  id: string;
+  name: string;
+  type: 'agua' | 'vegetacion' | 'incendios';
+  level: 'prioridad' | 'seguimiento';
+  metric: number;
+  reference: number | null;
+  from: string;
+  to: string;
+  source: string;
+  state?: State;
+  area?: string;
+}
+
+export interface WatchlistData {
+  signals: WatchSignal[];
+  sample: boolean;
+  weekly: { date: string; drill: boolean } | null;
+  rules: { waterThreshold: number; waterPriority: number; vegetationPercent: number; vegetationYears: number };
 }
 
 export interface Snapshot {
@@ -166,6 +203,9 @@ export const number = (value: number, digits = 0) => new Intl.NumberFormat('es-B
   maximumFractionDigits: digits,
 }).format(value);
 export const signed = (value: number, digits = 0) => `${value > 0 ? '+' : ''}${number(value, digits)}`;
+export const displayDate = (value: string, withDay = true) => new Intl.DateTimeFormat('es-BO', {
+  ...(withDay ? { day: 'numeric' } : {}), month: 'long', year: 'numeric', timeZone: 'UTC',
+}).format(new Date((value.length === 7 ? value + '-01' : value.slice(0, 10)) + 'T00:00:00Z'));
 export const waterChange = (value: number) => value < 0 ? `${number(Math.abs(value), 1)} % menos superficie de agua`
   : value > 0 ? `${number(value, 1)} % más superficie de agua` : 'Sin cambio de superficie de agua';
 export const imageUrl = (folder: 'img' | 'context', filename: string) => `/api/images/${folder}/${filename}.png`;

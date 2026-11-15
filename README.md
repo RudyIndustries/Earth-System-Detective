@@ -48,6 +48,13 @@ La auditoría de la demo es de solo lectura. El archivo SQLite empaquetado permi
 Para agregar revisiones en Vercel hace falta una base persistente. Las capas en vivo de Earth Engine se
 habilitan al configurar `GEE_SERVICE_ACCOUNT_KEY` y, si corresponde, `UMA_GEE_PROJECT`.
 
+Inicio muestra alertas calculadas a partir de los archivos de agua y pérdida de bosque. Las alertas de
+FIRMS proceden del reporte guardado y los simulacros se identifican como tales. En las fichas, **NASA
+reciente** consulta NASA POWER y el catálogo Earthdata CMR sin clave. Con acceso de Earth Engine se puede
+comparar el mismo mes con GPM IMERG, CHIRPS y ERA5-Land. Configura `FIRMS_MAP_KEY` en el entorno del
+backend para activar las detecciones de VIIRS NOAA-20 cerca de los lagos. Las claves se guardan en
+variables de entorno de NestJS y Vercel.
+
 ### Configuración local
 
 - **NestJS** (`backend/`) sirve diagnósticos, series de agua, imágenes, vigilancia e historial y guarda las

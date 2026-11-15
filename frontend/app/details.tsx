@@ -1,16 +1,20 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 import { ArrowLeft, CircleCheck, CircleDashed, Download, Droplets, ExternalLink, ScanSearch } from 'lucide-react';
 import { api, diagnosisMeaning, firstSuspect, imageUrl, modelUrl, number, reviewOutcomes, signed, states, waterChange,
   type Audit, type BodyDetail, type Method, type WaterBody } from './data';
 import { ClimateCharts, CrossChecks, WaterCharts } from './charts';
 import { DataTable, Status } from './ui';
 import { LakeSearch } from './lake-search';
+const ClimateArchive = dynamic(() => import('./environment').then((mod) => mod.ClimateArchive));
+const NasaObservations = dynamic(() => import('./environment').then((mod) => mod.NasaObservations));
 
 const contents = {
   'Antes y después': 'Compara el paisaje en dos fechas y, cuando esté disponible, muestra el agua detectada o los cambios en los alrededores.',
   'Clima y causas': 'Compara el agua observada con lo que el modelo espera según el clima y revisa las mediciones de otras fuentes.',
+  'NASA reciente': 'Consulta los últimos meses de NASA POWER y las fechas de imágenes y archivos satelitales disponibles en esta zona.',
   'Agua natural y artificial': 'Compara el lago con el agua natural de la zona y la de embalses, canales y otros usos.',
   'Pruebas y posibles causas': 'Lee qué pruebas se hicieron y qué actividades se investigaron como posibles factores.',
   Alrededores: 'Ubica poblaciones, minas, represas y otros sitios registrados cerca del lago.',
@@ -30,8 +34,8 @@ const placeKinds: Record<string, string[]> = {
   mining_water_ha: ['Mina o cantera'], dry_crop_ha: ['Represa o canal'],
 };
 
-export function Details({ bodies, id, method, select, back }: {
-  bodies: WaterBody[]; id: string; method: Method; select: (id: string) => void; back: () => void;
+export function Details({ bodies, id, method, select, back, alerts }: {
+  bodies: WaterBody[]; id: string; method: Method; select: (id: string) => void; back: () => void; alerts?: ReactNode;
 }) {
   const [tab, setTab] = useState<(typeof tabs)[number]>(tabs[0]);
   const [loaded, setLoaded] = useState<{ id: string; detail?: BodyDetail; error?: string }>();
@@ -75,6 +79,7 @@ export function Details({ bodies, id, method, select, back }: {
           </div>
         </div>
       </section>
+      {alerts}
       <div className="metrics">
         <div className="panel"><span>Superficie de referencia</span><strong>{number(body.baseline_mean_ha)} ha</strong></div>
         <div className="panel"><span>Cambio estimado por año</span><strong>{signed(body.trend.sen_ha_per_year, 1)} ha/año</strong></div>
@@ -102,7 +107,8 @@ export function Details({ bodies, id, method, select, back }: {
         <div className="tab-content">
           <p className="detail-tab-description">{contents[tab]}</p>
           {tab === 'Antes y después' && <Compare key={id} detail={detail} />}
-          {tab === 'Clima y causas' && <><ClimateCharts body={body} /><CrossChecks detail={detail} /></>}
+          {tab === 'Clima y causas' && <><ClimateArchive detail={detail} /><ClimateCharts body={body} /><CrossChecks detail={detail} /></>}
+          {tab === 'NASA reciente' && <NasaObservations key={id} id={id} />}
           {tab === 'Agua natural y artificial' && <WaterCharts key={id} detail={detail} />}
           {tab === 'Pruebas y posibles causas' && <Evidence body={body} />}
           {tab === 'Alrededores' && <Surroundings detail={detail} />}

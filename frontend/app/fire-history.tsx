@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import DeckGL from '@deck.gl/react';
-import type { MapViewState } from '@deck.gl/core';
-import { ColumnLayer, PolygonLayer, TextLayer } from '@deck.gl/layers';
+import type { MapViewState, Position } from '@deck.gl/core';
+import { ColumnLayer, PolygonLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers';
 import { Box, CalendarDays, CircleHelp, Map as MapIcon, Minus, Plus, RotateCcw } from 'lucide-react';
 import { api, number, signed } from './data';
 
@@ -103,14 +103,21 @@ function FireArchive({ archive }: { archive: Archive }) {
   }
 
   const layers = [
-    new PolygonLayer<Coordinates[]>({ id: 'bolivia-fire-boundary', data: archive.boundary, getPolygon: (ring) => ring,
-      getFillColor: [30, 54, 87], getLineColor: [130, 163, 212], lineWidthMinPixels: 1.4 }),
+    new PolygonLayer<Position[]>({ id: 'bolivia-fire-boundary', data: archive.boundary.map((ring) =>
+      ring.map(([lon, lat]) => [lon, lat, flat ? 0 : -16000] as Position)), getPolygon: (ring) => ring,
+      extruded: !flat, getElevation: 13500, getFillColor: [45, 75, 117], getLineColor: [130, 163, 212], lineWidthMinPixels: 1.4 }),
+    new PolygonLayer<Coordinates[]>({ id: 'bolivia-fire-border', data: archive.boundary, getPolygon: (ring) => ring,
+      filled: false, getLineColor: [130, 163, 212], lineWidthMinPixels: 1.2 }),
     new ColumnLayer<typeof cells[number]>({ id: 'fire-grid', data: mapped, getPosition: (cell) => cell.position,
       radius: 8800, diskResolution: 4, angle: 45, extruded: !flat, pickable: true, autoHighlight: true,
       getElevation: (cell) => Math.sqrt(Math.abs(cell.score) / maximum) * 84000,
       getFillColor: (cell) => cell.score < 0 ? [88, 164, 255] :
         [255, Math.round(192 - 115 * Math.sqrt(cell.score / maximum)), 76],
       onClick: ({ object }) => { if (object) setPicked(object.index); } }),
+    new ScatterplotLayer<typeof cells[number]>({ id: 'selected-fire-zone', data: active ? [active] : [],
+      getPosition: (cell) => [cell.position[0], cell.position[1], flat ? 0 : Math.sqrt(Math.abs(cell.score) / maximum) * 84000],
+      radiusUnits: 'pixels', getRadius: 15, getLineColor: [240, 255, 154], filled: false, stroked: true, lineWidthMinPixels: 2.5,
+      parameters: { depthCompare: 'always', depthWriteEnabled: false } }),
     new TextLayer({ id: 'fire-place-names', data: cities, getPosition: (city) => city.position, getText: (city) => city.name,
       getSize: 12, getColor: [239, 247, 255], background: true, getBackgroundColor: [8, 18, 38, 223],
       backgroundPadding: [4, 2], billboard: true, characterSet: 'auto',
@@ -169,9 +176,9 @@ function FireArchive({ archive }: { archive: Archive }) {
         ? `${number(mapped.filter((cell) => cell.score > 0).length)} zonas por encima de la referencia en el mapa`
         : `${number(cells.reduce((sum, cell) => sum + cell.value, 0), mode === 'forecast' ? 1 : 0)} focos ${mode === 'forecast' ? 'estimados' : 'detectados'} en las zonas del archivo`}</span></div>
       {active ? <div><strong>{number(Math.abs(active.position[1]), 2)}° S · {number(Math.abs(active.position[0]), 2)}° O</strong>
-        <span>{shownValue(active)}</span></div>
+        <span>{shownValue(active)}</span><button type="button" onClick={() => setPicked(undefined)}>Quitar selección</button></div>
         : <div><strong className="fire-map-key"><i />{comparison ? 'Por encima' : 'Más focos'}{comparison && <><i /> Por debajo</>}</strong>
-          <span>Cada barra representa una zona de aproximadamente {number(111 * archive.res)} km de lado.</span></div>}
+          <span>Cada barra representa una zona de aproximadamente {number(111 * archive.res)} km de lado. Su altura representa detecciones o diferencia respecto a la referencia, según la capa elegida.</span></div>}
     </div>
     <details className="mission-table-expand">
       <summary>Cómo se armó este mapa</summary>

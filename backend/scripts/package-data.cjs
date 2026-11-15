@@ -14,10 +14,11 @@ const files = [
 ];
 
 for (const mode of ['real', 'sample']) {
-  for (const file of ['results.json', 'suspects.csv', 'uma.db', 'validation/results.json', 'validation/uma.db']) {
+  for (const file of ['results.json', 'suspects.csv', 'series.csv', 'uma.db', 'validation/results.json', 'validation/uma.db']) {
     files.push(`data/${mode}/${file}`);
   }
 }
+files.push('data/real/basins.csv');
 
 for (const folder of ['data/real/context', 'data/real/img']) {
   for (const file of readdirSync(join(root, folder), { withFileTypes: true })) {

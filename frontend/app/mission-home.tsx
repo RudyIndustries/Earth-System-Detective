@@ -1,8 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { ArrowDown, ArrowRight, ArrowUpRight, Droplets, Flame, Leaf } from 'lucide-react';
 
-export function MissionHome({ lakes, fires, vegetation }: { lakes: string; fires: string; vegetation: string }) {
+export function MissionHome({ lakes, fires, vegetation, alerts }: { lakes: string; fires: string; vegetation: string; alerts: ReactNode }) {
   const topics = [
     { href: lakes, name: 'Lagos', icon: Droplets, media: 'titicaca', alt: 'Lago Menor del Titicaca visto desde Landsat',
       description: 'Explora el relieve en 3D, compara la superficie de agua y abre la ficha de cada caso.' },
@@ -24,13 +25,14 @@ export function MissionHome({ lakes, fires, vegetation }: { lakes: string; fires
           <h1 id="mission-title">Detector de<br /><span className="mission-marker">huella humana</span></h1>
           <p>Observa cómo cambian los lagos de Bolivia y qué señales dejan el clima, los incendios y el uso del suelo en sus cuencas.</p>
           <div className="mission-hero-actions">
-            <Link className="button-link primary" href={lakes}>Explorar lagos <ArrowUpRight size={19} aria-hidden="true" /></Link>
-            <a className="mission-anchor" href="#explorar"><ArrowDown size={17} aria-hidden="true" /> Qué puedes explorar</a>
+            <a className="button-link primary" href="#alertas">Ver alertas <ArrowDown size={19} aria-hidden="true" /></a>
+            <Link className="mission-anchor" href={lakes}>Explorar lagos <ArrowUpRight size={17} aria-hidden="true" /></Link>
           </div>
         </div>
         <p className="mission-image-credit">Lago Poopó, Bolivia <span>Landsat · 2023</span></p>
       </div>
     </section>
+    {alerts}
     <section id="explorar" className="mission-topics" tabIndex={-1}>
       <div className="mission-section-heading">
         <h2>Explora las cuencas</h2>

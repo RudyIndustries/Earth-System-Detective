@@ -6,10 +6,11 @@ import { Module } from '@nestjs/common';
 import { ObservatoryController } from './observatory.controller';
 import { ObservatoryService } from './observatory.service';
 import { MapService } from './map.service';
+import { NasaService } from './nasa.service';
 
 @Module({
   controllers: [ObservatoryController],
-  providers: [ObservatoryService, MapService],
+  providers: [ObservatoryService, MapService, NasaService],
 })
 class AppModule {}
 

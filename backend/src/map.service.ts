@@ -20,6 +20,7 @@ export class MapService {
   private readonly logger = new Logger(MapService.name);
   private initialization?: Promise<void>;
   private readonly textures = new Map<string, { request: Promise<string>; expires: number }>();
+  private readonly climate = new Map<string, { request: Promise<Record<string, number | null>>; expires: number }>();
   private readonly terrain = new Map<string, Promise<PNG>>();
 
   get configured() {
@@ -46,6 +47,57 @@ export class MapService {
       key.project_id;
     await new Promise<void>((success, failure) => ee.data.authenticateViaPrivateKey(key, success, failure));
     await new Promise<void>((success, failure) => ee.initialize(null, null, success, failure, null, project));
+  }
+
+  compareClimate(point: { lat: number; lon: number }, month: string) {
+    const base = { radiusKm: 20, month, sources: ['NASA GPM IMERG V07', 'CHIRPS', 'ERA5-Land'] };
+    if (!this.configured) return Promise.resolve({ ...base, status: 'not_configured', values: null });
+    const cacheKey = `${point.lat},${point.lon},${month}`;
+    const cached = this.climate.get(cacheKey);
+    if (cached && cached.expires > Date.now()) {
+      return cached.request.then((values) => ({ ...base, status: 'available', values }))
+        .catch(() => ({ ...base, status: 'unavailable', values: null }));
+    }
+    const request = this.climateForMonth(point, month);
+    const entry = { request, expires: Date.now() + 60 * 60 * 1000 };
+    if (this.climate.size >= 48) this.climate.delete(this.climate.keys().next().value!);
+    this.climate.set(cacheKey, entry);
+    return request.then((values) => ({ ...base, status: 'available', values })).catch(() => {
+      entry.expires = Date.now() + 30_000;
+      return { ...base, status: 'unavailable', values: null };
+    });
+  }
+
+  private async climateForMonth(point: { lat: number; lon: number }, month: string) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Earth Engine no respondió a tiempo')), 10000);
+      }), (async () => {
+        await this.initialize();
+        const start = ee.Date(month + '-01');
+        const end = start.advance(1, 'month');
+        const region = ee.Geometry.Point([point.lon, point.lat]).buffer(20000);
+        const select = (id: string, field: string) => ee.ImageCollection(id).filterDate(start, end).select(field);
+        const imerg = select('NASA/GPM_L3/IMERG_MONTHLY_V07', 'precipitation');
+        const chirps = select('UCSB-CHG/CHIRPS/DAILY', 'precipitation');
+        const eraRain = select('ECMWF/ERA5_LAND/MONTHLY_AGGR', 'total_precipitation_sum');
+        const eraTemp = select('ECMWF/ERA5_LAND/MONTHLY_AGGR', 'temperature_2m');
+        const days = end.difference(start, 'day');
+        const mean = (image: ReturnType<typeof ee.Image>, band: string, scale: number) => image.reduceRegion({
+          reducer: ee.Reducer.mean(), geometry: region, scale, maxPixels: 10000,
+        }).get(band);
+        const values = ee.Dictionary({
+          gpmMm: ee.Algorithms.If(imerg.size().gt(0), mean(imerg.mean().multiply(days.multiply(24)), 'precipitation', 11132), null),
+          chirpsMm: ee.Algorithms.If(chirps.size().eq(days), mean(chirps.sum(), 'precipitation', 5566), null),
+          eraRainMm: ee.Algorithms.If(eraRain.size().gt(0), mean(eraRain.mean().multiply(1000), 'total_precipitation_sum', 11132), null),
+          eraTempC: ee.Algorithms.If(eraTemp.size().gt(0), mean(eraTemp.mean().subtract(273.15), 'temperature_2m', 11132), null),
+        });
+        return new Promise<Record<string, number | null>>((resolve, reject) => values.evaluate(
+          (result: Record<string, number | null> | undefined, error: string | undefined) => result ? resolve(result) : reject(new Error(error)),
+        ));
+      })()]);
+    } finally { if (timer) clearTimeout(timer); }
   }
 
   async texture(mode: 'water' | 'landsat', year: number, fires: boolean) {

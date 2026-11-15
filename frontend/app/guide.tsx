@@ -5,6 +5,7 @@ import { ArrowDown, ArrowLeft, ArrowRight, CircleHelp, Compass, X } from 'lucide
 
 const guides = {
   panorama: [
+    { title: 'Revisa las alertas', text: 'Las tarjetas indican qué lago o cuenca merece revisión, cuándo cambió y qué fuente lo registró.', target: 'alertas' },
     { title: 'Elige qué explorar', text: 'Lagos reúne el mapa, la tabla y las fichas. Incendios muestra focos térmicos. Vegetación explica qué cambió en el suelo alrededor del agua.', target: 'explorar' },
     { title: 'Lee los diagnósticos en conjunto', text: 'El gráfico muestra cuántos cuerpos de agua hay en cada categoría. Puedes elegir entre el análisis completo y el barrido nacional.', target: 'diagnosticos-inicio' },
     { title: 'Abre un caso', text: 'Cada caso reúne el cambio en la superficie de agua y su diagnóstico. Entra a la ficha para ver imágenes y pruebas.', target: 'casos-lagos' },

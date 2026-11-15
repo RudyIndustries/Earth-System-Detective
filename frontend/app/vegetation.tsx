@@ -4,15 +4,20 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { Area as ChartArea, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { api, areaNames, imageUrl, modelUrl, number, type Area, type BodyDetail, type Method, type WaterBody } from './data';
+import { api, areaNames, imageUrl, modelUrl, number, signed, type Area, type BodyDetail, type Method, type WaterBody } from './data';
 import { DataTable } from './ui';
 
 const indicators = {
-  forest_loss_ha: { label: 'Pérdida de bosque', description: 'Hectáreas de bosque perdido por año.', color: '#85e48e' },
-  burned_ha: { label: 'Superficie quemada', description: 'Hectáreas de superficie quemada por año.', color: '#ffad85' },
-  pasture_ha: { label: 'Pasturas', description: 'Hectáreas clasificadas como pastura en cada año.', color: '#b5db75' },
-  agri_ha: { label: 'Cultivos', description: 'Hectáreas clasificadas como agricultura en cada año.', color: '#ffdb79' },
-  dry_crop_ha: { label: 'Cultivos de secano', description: 'Hectáreas de cultivos de secano en cada año.', color: '#a4bbff' },
+  forest_loss_ha: { label: 'Pérdida de bosque', description: 'Hectáreas de bosque perdido por año.', color: '#85e48e', unit: 'ha', source: 'Hansen Global Forest Change' },
+  burned_ha: { label: 'Superficie quemada', description: 'Hectáreas de superficie quemada por año.', color: '#ffad85', unit: 'ha', source: 'NASA MODIS MCD64A1' },
+  pasture_ha: { label: 'Pasturas', description: 'Hectáreas clasificadas como pastura en cada año.', color: '#b5db75', unit: 'ha', source: 'MapBiomas Cobertura' },
+  agri_ha: { label: 'Cultivos', description: 'Hectáreas clasificadas como agricultura en cada año.', color: '#ffdb79', unit: 'ha', source: 'MapBiomas Cobertura' },
+  dry_crop_ha: { label: 'Cultivos en época seca', description: 'Superficie de cultivo con vegetación activa en época seca. Puede indicar riego.', color: '#a4bbff', unit: 'ha', source: 'Landsat · proxy de riego' },
+  mining_ha: { label: 'Superficie minera', description: 'Superficie clasificada como minería. Puedes comparar su crecimiento año a año.', color: '#ffd39f', unit: 'ha', source: 'MapBiomas Cobertura' },
+  urban_ha: { label: 'Superficie urbana', description: 'Superficie clasificada como infraestructura urbana.', color: '#bfa7ff', unit: 'ha', source: 'MapBiomas Cobertura' },
+  population: { label: 'Población estimada', description: 'Estimación de habitantes en el área consultada.', color: '#79cfff', unit: 'personas', source: 'WorldPop' },
+  night_lights: { label: 'Luces nocturnas', description: 'Índice de iluminación que ayuda a seguir cambios urbanos o industriales. El archivo armoniza dos sensores.', color: '#a6c7ff', unit: 'índice', source: 'DMSP-OLS y NASA VIIRS' },
+  crop_water_hm3: { label: 'Agua evapotranspirada por cultivos', description: 'Estimación de agua evapotranspirada de mayo a octubre en zonas clasificadas como cultivo. Puede ayudar a investigar el riego.', color: '#6ce6db', unit: 'hm³', source: 'NASA MODIS MOD16 y MapBiomas' },
 } as const;
 type Indicator = keyof typeof indicators;
 
@@ -48,6 +53,8 @@ export default function Vegetation({ bodies, id, method, select, details }: {
     return { year, value: series.find((row) => row.year === year)?.value ?? null };
   }) : [];
   const item = indicators[indicator];
+  const last = series.at(-1);
+  const previous = last ? series.find((row) => row.year === last.year - 1) : undefined;
 
   return <>
     <div className="panel mission-filter">
@@ -63,7 +70,7 @@ export default function Vegetation({ bodies, id, method, select, details }: {
     {current?.data && <>
       <section className="panel mission-data-panel" aria-labelledby="vegetation-series">
         <div className="mission-chart-heading">
-          <div><h2 id="vegetation-series" tabIndex={-1}>Evolución de la cobertura</h2><p>{item.description}</p></div>
+          <div><h2 id="vegetation-series" tabIndex={-1}>Cobertura y actividad humana</h2><p>{item.description}</p></div>
           <div className="mission-chart-controls">
             <label><span id="vegetation-area-label">Área</span><select aria-labelledby="vegetation-area-label"
               value={selectedArea} onChange={(event) => setArea(event.target.value as Area)}>
@@ -77,21 +84,26 @@ export default function Vegetation({ bodies, id, method, select, details }: {
           </div>
         </div>
         {timeline.length ? <>
+          <div className="environment-metrics">
+            {last && <div><span>Último dato · {last.year}</span><strong>{number(last.value, 1)} {item.unit}</strong><small>{item.source}</small></div>}
+            {last && previous && <div><span>Cambio respecto a {previous.year}</span><strong>{signed(last.value - previous.value, 1)} {item.unit}</strong>
+              <small>{areaNames[selectedArea]}</small></div>}
+          </div>
           <div className="vegetation-chart" aria-label={`${item.label} de ${series[0].year} a ${series.at(-1)!.year}`}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={timeline} margin={{ top: 13, right: 18, left: 6, bottom: 14 }}>
                 <CartesianGrid stroke="#294066" vertical={false} />
                 <XAxis dataKey="year" stroke="#b9c7e3" minTickGap={30} />
-                <YAxis stroke="#b9c7e3" width={65} tickFormatter={(value) => number(value)} unit=" ha" />
+                <YAxis stroke="#b9c7e3" width={75} tickFormatter={(value) => number(value)} unit={` ${item.unit}`} />
                 <Tooltip contentStyle={{ background: '#101f3c', border: '1px solid #395581', borderRadius: 12 }}
-                  formatter={(value) => [typeof value === 'number' ? `${number(value, 1)} ha` : 'Sin dato', item.label]} />
+                  formatter={(value) => [typeof value === 'number' ? `${number(value, 1)} ${item.unit}` : 'Sin dato', item.label]} />
                 <ChartArea type="linear" dataKey="value" stroke={item.color} strokeWidth={3}
                   fill={item.color} fillOpacity={.15} isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
           <details className="mission-table-expand"><summary>Ver datos por año</summary>
-            <DataTable rows={timeline.map(({ year, value }) => ({ Año: year, 'Superficie (ha)': value == null ? null : number(value, 1) }))} />
+            <DataTable rows={timeline.map(({ year, value }) => ({ Año: year, [`${item.label} (${item.unit})`]: value == null ? null : number(value, 1) }))} />
           </details>
         </> : <p className="notice">El archivo no tiene registros para este indicador y área.</p>}
       </section>

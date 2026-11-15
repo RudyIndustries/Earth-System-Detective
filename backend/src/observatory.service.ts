@@ -4,6 +4,7 @@ import { isAbsolute, join, resolve } from 'node:path';
 import Database from 'better-sqlite3';
 import { parse } from 'csv-parse/sync';
 import { dataRoot } from './data-root';
+import { isDrill, median, waterPriority, waterThreshold, type WatchSignal, type WeeklyRecord } from './watchlist';
 
 interface Result {
   body_id: string;
@@ -13,15 +14,20 @@ interface Result {
   lon: number;
   state: string;
   confidence: string;
+  years?: number[];
+  baseline_end?: number;
+  baseline_mean_ha?: number;
   trend: { change_pct: number };
 }
 
 interface Place { lat: number; lon: number }
-interface SuspectRow { body_id: string; year: string; suspect: string; value: string; area?: string }
+interface ArchiveRow { body_id: string; [key: string]: string }
 interface Context { years: [number, number]; window_km: number; changes_ha: Record<string, number> }
 interface Verification { lagunas?: Record<string, unknown> }
 const waterSignals = new Set(['natural_water_ha', 'artificial_water_ha', 'mining_water_ha', 'desaguadero_water_ha']);
-const vegetationSignals = new Set(['forest_loss_ha', 'burned_ha', 'pasture_ha', 'agri_ha', 'dry_crop_ha']);
+const vegetationSignals = new Set(['forest_loss_ha', 'burned_ha', 'pasture_ha', 'agri_ha', 'dry_crop_ha',
+  'mining_ha', 'urban_ha', 'night_lights', 'population', 'crop_water_hm3']);
+const measurement = (value?: string) => value?.trim() && Number.isFinite(Number(value)) ? Number(value) : null;
 
 export const reviewOutcomes = ['En revision', 'Confirmado en campo', 'Falso positivo', 'Requiere mas datos'];
 
@@ -30,6 +36,7 @@ export class ObservatoryService {
   private readonly root = dataRoot();
   private readonly national = join(this.root, 'data', 'national');
   private readonly jsonCache = new Map<string, { mtime: number; size: number; value: unknown }>();
+  private readonly csvCache = new Map<string, { mtime: number; size: number; records: ArchiveRow[] }>();
 
   private get data() {
     const configured = process.env.UMA_DATA;
@@ -57,6 +64,17 @@ export class ObservatoryService {
     throw new BadRequestException('Método de análisis desconocido.');
   }
 
+  private csv(file: string): ArchiveRow[] {
+    const path = join(this.data, file);
+    if (!existsSync(path)) return [];
+    const { mtimeMs, size } = statSync(path);
+    const previous = this.csvCache.get(path);
+    if (previous?.mtime === mtimeMs && previous.size === size) return previous.records;
+    const records = parse(readFileSync(path), { columns: true, skip_empty_lines: true, bom: true }) as ArchiveRow[];
+    this.csvCache.set(path, { mtime: mtimeMs, size, records });
+    return records;
+  }
+
   private results(dir = this.data) {
     const file = join(dir, 'results.json');
     if (!existsSync(file)) throw new ServiceUnavailableException('Los datos del observatorio no están disponibles en este despliegue.');
@@ -68,6 +86,81 @@ export class ObservatoryService {
     const result = this.results(dir).find((item) => item.body_id === id);
     if (!result) throw new NotFoundException('Cuerpo de agua no encontrado.');
     return result;
+  }
+
+  location(id: string) {
+    if (!/^[a-z0-9_]+$/i.test(id)) throw new NotFoundException('Cuerpo de agua no encontrado.');
+    const body = this.results().find((item) => item.body_id === id)
+      ?? this.json<Result[]>(join(this.national, 'results.json'), []).find((item) => item.body_id === id);
+    if (!body) throw new NotFoundException('Cuerpo de agua no encontrado.');
+    return { id: body.body_id, lat: body.lat, lon: body.lon };
+  }
+
+  private measurements(id: string) {
+    return this.csv('suspects.csv').flatMap((row) => {
+      if (row.body_id !== id || !row.area) return [];
+      const year = measurement(row.year);
+      const value = measurement(row.value);
+      return year != null && Number.isInteger(year) && value != null ? [{ area: row.area, year, suspect: row.suspect, value }] : [];
+    });
+  }
+
+  private annualClimate(id: string) {
+    return this.csv('series.csv').filter((row) => row.body_id === id).flatMap((row) => {
+      const year = measurement(row.year);
+      if (year == null || !Number.isInteger(year)) return [];
+      return [{ year, waterHa: measurement(row.water_ha), jrcHa: measurement(row.water_ha_jrc), missingPct: measurement(row.nodata_pct),
+        powerMm: measurement(row.precip_power_mm), chirpsMm: measurement(row.precip_chirps_mm),
+        rainMm: measurement(row.precip_mm), tempC: measurement(row.temp_c), petMm: measurement(row.pet_mm),
+        storageCm: measurement(row.groundwater_cm), oni: measurement(row.oni) }];
+    }).sort((a, b) => a.year - b.year);
+  }
+
+  watchlist(method?: string) {
+    const snapshot = this.dashboard(method);
+    const report = this.json<WeeklyRecord | null>(join(this.data, 'alertas_semanales.json'), null);
+    const weekly = report ? { date: report.week_end, drill: isDrill(report) } : null;
+    const rules = { waterThreshold, waterPriority, vegetationPercent: 50, vegetationYears: 5, vegetationRatio: 1.5 } as const;
+    if (snapshot.sample) return { signals: [], sample: true, weekly, rules };
+    const signals: WatchSignal[] = snapshot.results.flatMap((body) => {
+      const change = body.trend.change_pct;
+      const period = body.years?.slice(-5);
+      if (!Number.isFinite(change) || change > -waterThreshold || !period?.length) return [];
+      return [{
+        id: body.body_id, name: body.name, type: 'agua', level: change <= -waterPriority ? 'prioridad' : 'seguimiento',
+        metric: change, reference: body.baseline_end ?? null, from: String(period[0]), to: String(period.at(-1)), state: body.state,
+        source: 'Landsat · análisis de superficie',
+      }];
+    });
+
+    for (const body of snapshot.results) {
+      const loss = this.measurements(body.body_id).filter((row) => row.suspect === 'forest_loss_ha' && row.area === 'subcuenca_local')
+        .sort((a, b) => a.year - b.year);
+      const latest = loss.at(-1);
+      if (!latest) continue;
+      const previous = loss.filter(({ year }) => year >= latest.year - rules.vegetationYears && year < latest.year);
+      if (previous.length !== rules.vegetationYears) continue;
+      const usual = median(previous.map(({ value }) => value));
+      if (usual > 0 && latest.value >= usual * rules.vegetationRatio) signals.push({
+        id: body.body_id, name: body.name, type: 'vegetacion', level: 'seguimiento', metric: latest.value, reference: usual,
+        from: String(previous[0].year), to: String(latest.year), source: 'Hansen Global Forest Change', area: latest.area,
+      });
+    }
+    if (report && !isDrill(report)) {
+      for (const body of report.rows) {
+        if (!body.alerta) continue;
+        for (const [area, counts] of Object.entries(body.areas)) {
+          if (counts.alerta) signals.push({
+            id: body.body_id, name: body.name, type: 'incendios', level: 'seguimiento', metric: counts.focos,
+            reference: counts.normal, from: report.week_end, to: report.week_end, source: 'NASA FIRMS · reporte guardado', area,
+          });
+        }
+      }
+    }
+    signals.sort((a, b) => Number(b.level === 'prioridad') - Number(a.level === 'prioridad')
+      || Number(b.type === 'agua') - Number(a.type === 'agua')
+      || (a.type === 'agua' ? a.metric - b.metric : b.to.localeCompare(a.to)));
+    return { signals, sample: false, weekly, rules };
   }
 
   dashboard(method?: string) {
@@ -99,22 +192,20 @@ export class ObservatoryService {
       const match = filename.match(new RegExp(`^${id}_(\\d{4})\\.png$`));
       return match ? [{ year: Number(match[1]), mask: images.has(`${id}_${match[1]}_water.png`) }] : [];
     }).sort((a, b) => a.year - b.year);
-    const csv = join(dir, 'suspects.csv');
-    const signals = existsSync(csv) ? (parse(readFileSync(csv), {
-      columns: true, skip_empty_lines: true, bom: true,
-    }) as SuspectRow[]).flatMap((row) => {
-      if (row.body_id !== id || !row.area || !row.value?.trim() || !row.year?.trim()) return [];
-      const year = Number(row.year);
-      const value = Number(row.value);
-      return Number.isInteger(year) && Number.isFinite(value) ? [{ area: row.area, year, suspect: row.suspect, value }] : [];
-    }) : [];
+    const signals = this.measurements(id);
     const water = signals.filter(({ suspect }) => waterSignals.has(suspect));
     const vegetation = signals.filter(({ suspect }) => vegetationSignals.has(suspect));
     const verification = this.json<Verification | null>(join(dir, 'verificacion.json'), null)?.lagunas?.[id] ?? null;
     const river = id === 'poopo' || id === 'uru_uru' || id === 'titicaca_menor'
       ? this.json(join(dir, 'desaguadero.json'), null)
       : null;
-    return { result, context, imageYears, places: this.places(id, dir), water, vegetation, verification, river };
+    const basin = this.csv('basins.csv').find((row) => row.body_id === id);
+    const catchment = basin ? {
+      areaKm2: measurement(basin.upstream_km2), subbasins: measurement(basin.n_subbasins),
+      upstream: basin.upstream_bodies?.split(',').map((id) => id.trim()).filter(Boolean) ?? [],
+    } : null;
+    return { result, context, imageYears, places: this.places(id, dir), water, vegetation, verification, river,
+      climate: this.annualClimate(id), catchment };
   }
 
   image(folder: string, filename: string) {
