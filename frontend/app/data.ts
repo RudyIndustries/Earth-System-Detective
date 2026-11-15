@@ -124,6 +124,7 @@ export interface Snapshot {
 export type Row = Record<string, string | number | null>;
 export interface Audit {
   available: boolean;
+  canReview: boolean;
   runs: Row[];
   reviews: Row[];
   alerts: Row[];

@@ -2,7 +2,7 @@
   "name": "earth-system-detective",
   "private": true,
   "workspaces": ["frontend", "backend"],
-  "engines": { "node": ">=20.9.0" },
+  "engines": { "node": "^20.9.0 || 22.x || 24.x" },
   "scripts": {
     "build": "npm run build --workspace backend && npm run build --workspace frontend",
     "start": "npm run start --workspace frontend",

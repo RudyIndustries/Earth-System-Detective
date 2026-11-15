@@ -9,7 +9,7 @@ Los resultados actuales están en [data/real/validation/REPORT.md](data/real/val
 
 ## Arranque del dashboard
 
-Usa Node.js 20.9 o posterior y npm. Desde la carpeta raíz instala las dependencias y compila el frontend:
+Usa Node.js 20.9+, 22 o 24 y npm. Desde la carpeta raíz instala las dependencias y compila el frontend:
 
 ```bash
 npm ci
@@ -36,6 +36,17 @@ La barra superior lleva a **Panorama**, **Mapa 3D**, **Monitoreo**, **Fichas** e
 En el mapa, usa **Balance hídrico** para explorar el barrido nacional y **Modelo conservador** para consultar
 los resultados de `mapa3`. El método y el cuerpo de agua seleccionado quedan en la URL. Puedes abrir directamente
 el [mapa con el modelo conservador](http://localhost:3000/?vista=mapa&metodo=conservador).
+
+### Vercel
+
+Importa el repositorio con el preset **Services** y la **raíz del repo** como Root Directory. Selecciona
+`developer` como rama de producción. El `vercel.json` de la raíz dirige `/api/*` a NestJS y las páginas a
+Next.js en el mismo dominio. Los datos precalculados y las imágenes se incluyen en el backend, por lo que la
+demo arranca con Node.js. Deja `BACKEND_URL` sin definir para usar el enrutamiento del proyecto.
+
+La auditoría de la demo es de solo lectura. El archivo SQLite empaquetado permite consultar el historial.
+Para agregar revisiones en Vercel hace falta una base persistente. Las capas en vivo de Earth Engine se
+habilitan al configurar `GEE_SERVICE_ACCOUNT_KEY` y, si corresponde, `UMA_GEE_PROJECT`.
 
 ### Configuración local
 

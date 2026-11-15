@@ -1,6 +1,7 @@
 {
   "name": "backend",
   "private": true,
+  "engines": { "node": "^20.9.0 || 22.x || 24.x" },
   "scripts": { "build": "nest build", "start": "node dist/main.js", "start:dev": "nest start --watch" },
   "dependencies": {
     "@google/earthengine": "^1.6.0",

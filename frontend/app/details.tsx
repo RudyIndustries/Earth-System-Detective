@@ -230,13 +230,15 @@ function AuditView({ body, method }: { body: WaterBody; method: Method }) {
       {latest && previous && latest.estado !== previous.estado && <p className="notice">El veredicto cambió de {previous.estado} a {latest.estado}. {latest.nota}</p>}
       <DataTable rows={audit.runs} />
       {!!audit.alerts.length && <><h3>Alertas</h3><DataTable rows={audit.alerts} /></>}
-      <h3>Agregar revisión humana</h3>
-      <form onSubmit={save} className="review-form">
-        <label>Quién revisa<input name="reviewer" required maxLength={200} /></label>
-        <label>Resultado<select name="outcome">{Object.entries(reviewOutcomes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-        <label className="review-comment">Comentario<textarea rows={3} name="comment" maxLength={5000} /></label>
-        <button type="submit" className="primary" disabled={busy}>{busy ? 'Guardando…' : 'Guardar revisión'}</button>
-      </form>
+      {audit.canReview ? <>
+        <h3>Agregar revisión humana</h3>
+        <form onSubmit={save} className="review-form">
+          <label>Quién revisa<input name="reviewer" required maxLength={200} /></label>
+          <label>Resultado<select name="outcome">{Object.entries(reviewOutcomes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+          <label className="review-comment">Comentario<textarea rows={3} name="comment" maxLength={5000} /></label>
+          <button type="submit" className="primary" disabled={busy}>{busy ? 'Guardando…' : 'Guardar revisión'}</button>
+        </form>
+      </> : <p className="muted">Auditoría de solo lectura en este despliegue.</p>}
       {!!audit.reviews.length && <><h3>Revisiones</h3><DataTable rows={audit.reviews} /></>}
     </> : <p className="muted">{audit ? 'Sin base de auditoría para estos datos.' : 'Cargando auditoría…'}</p>}
     {status && <p className={`notice ${status.error ? 'danger' : 'success'}`} role={status.error ? 'alert' : 'status'}>{status.message}</p>}

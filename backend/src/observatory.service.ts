@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
 import Database from 'better-sqlite3';
@@ -141,6 +141,7 @@ export class ObservatoryService {
     this.result(id, dir);
     return this.withDb((db) => ({
       available: true,
+      canReview: process.env.VERCEL !== '1',
       runs: db.prepare(`
         SELECT r.run_id AS corrida, r.created_at AS fecha, v.state AS estado, v.confidence AS confianza,
           v.n_pass AS pruebas, ROUND(v.change_pct) AS cambio_pct, v.control_id AS gemela,
@@ -155,10 +156,13 @@ export class ObservatoryService {
         SELECT state AS estado, opened_at AS abierta, closed_at AS cerrada, status AS situacion
         FROM alerts WHERE body_id = ? ORDER BY alert_id DESC
       `).all(id),
-    }), { available: false, runs: [], reviews: [], alerts: [] }, false, dir);
+    }), { available: false, canReview: false, runs: [], reviews: [], alerts: [] }, false, dir);
   }
 
   review(id: string, body: Record<string, unknown> | undefined, method?: string) {
+    if (process.env.VERCEL === '1') {
+      throw new ServiceUnavailableException('Las revisiones requieren una base de datos persistente.');
+    }
     const dir = this.modelDir(method);
     this.result(id, dir);
     const { reviewer, outcome, comment = '' } = body ?? {};
